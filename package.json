@@ -8,11 +8,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "pnpm -r --if-present build",
     "dev": "pnpm --filter @cuepoint/web dev",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm -r --if-present typecheck",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
@@ -23,5 +23,11 @@
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.1",
     "vitest": "^2.1.8"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "electron-builder"
+    ]
   }
 }

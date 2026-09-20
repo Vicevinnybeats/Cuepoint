@@ -12,6 +12,7 @@ terminology and behaviour — not a toy.
 | `packages/analysis` | Web Workers: BPM detection, key detection, waveform peaks              |
 | `packages/dsp`      | AudioWorklet processors + WASM kernels                                 |
 | `packages/library`  | Local track library — Dexie/IndexedDB, audio never leaves the device  |
+| `apps/desktop`      | Electron shell wrapping the same build as a native desktop app        |
 
 ### Hard rules
 
@@ -37,10 +38,23 @@ terminology and behaviour — not a toy.
 
 ```sh
 pnpm install
-pnpm dev        # apps/web on :3000
+pnpm dev        # apps/web on :3000 (PWA — installable from the browser)
 pnpm test       # Vitest across all packages
 pnpm typecheck
 ```
+
+### Desktop app
+
+```sh
+pnpm --filter @cuepoint/desktop start   # runs the Electron shell locally
+pnpm --filter @cuepoint/desktop dist    # packages an installer (electron-builder)
+```
+
+`apps/desktop` doesn't duplicate the UI — it builds `apps/web` as a static
+export (`CUEPOINT_TARGET=desktop next build`, see `next.config.ts`) and
+serves it from a small bundled HTTP server (`apps/desktop/main.cjs`) that
+sets the COOP/COEP headers `file://` can't carry. Same codebase, two
+install targets: PWA in the browser, native shell on desktop.
 
 Cross-origin isolation is required for `SharedArrayBuffer`. `apps/web` sets
 `Cross-Origin-Opener-Policy: same-origin` and
@@ -80,6 +94,12 @@ back to `MessagePort` transport and reports reduced timing fidelity.
   metadata and audio Blob are saved locally (never synced anywhere); the
   library panel lists saved tracks and reloads either into deck A or B
   without re-picking the file. 5 tests (fake-indexeddb).
+- Two install targets, one codebase: a real service worker
+  (`apps/web/public/sw.js`, cache-first for same-origin GETs) makes the PWA
+  work offline once installed, and `apps/desktop` wraps the same build as
+  a native Electron app — verified: static export builds clean, and the
+  bundled server was smoke-tested standalone (200 + correct COOP/COEP
+  headers).
 
 **Stubbed:**
 

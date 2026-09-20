@@ -1,0 +1,24 @@
+{
+  "name": "@cuepoint/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "build:web": "pnpm --filter @cuepoint/web build:desktop",
+    "start": "pnpm build:web && electron .",
+    "dist": "pnpm build:web && electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "app.cuepoint.desktop",
+    "productName": "Cuepoint",
+    "files": ["main.cjs", "preload.cjs", "../web/out/**"],
+    "directories": { "output": "release" },
+    "mac": { "category": "public.app-category.music" },
+    "linux": { "category": "Audio", "target": "AppImage" },
+    "win": { "target": "nsis" }
+  }
+}
