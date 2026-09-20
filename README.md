@@ -53,3 +53,29 @@ back to `MessagePort` transport and reports reduced timing fidelity.
   synthetic block sequence and the rendered output is asserted against an
   analytic expectation (gain law, filter magnitude response, resampler
   pitch/tempo, loop sample-accuracy).
+
+## Status
+
+**Done:**
+
+- `packages/dsp` — biquad/EQ3/filter/limiter/meter/resampler kernels, seqlock
+  shared-state protocol, deck + master AudioWorklet processors. 87 tests.
+- `packages/engine` — UI store (zustand/vanilla), `EngineClient` browser
+  facade over the AudioContext/worklet graph, pitch/sync math.
+- `apps/web` — full deck + mixer UI (jogwheels, 3-band EQ, filter, hot cues,
+  crossfader with curve selection, pitch fader, level metering), responsive
+  desktop (three-column) and mobile (stacked) layouts. Loading a local audio
+  file and pressing Play drives real playback through the worklet graph.
+
+**Stubbed:**
+
+- `packages/analysis` — BPM/key/waveform detection. BPM is currently typed in
+  by hand per track; Sync reflects UI intent only until this lands.
+- No waveform display (needs the peaks worker above).
+- No IndexedDB library or Supabase sync — tracks load per-session from the
+  file picker, nothing persists across reloads.
+- No WASM DSP path — the kernels in `packages/dsp` are the reference
+  implementation; a WASM build behind the same interface is a later swap.
+- PWA icons are placeholder SVGs, not designed artwork.
+- The jogwheel's visual spin rate assumes a 48 kHz AudioContext (see
+  `apps/web/components/JogWheel.tsx`) — cosmetic only, does not affect audio.

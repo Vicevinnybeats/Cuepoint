@@ -8,3 +8,5 @@ coverage/
 .env.local
 .DS_Store
 public/wasm/*.wasm
+apps/web/public/worklets/*.js
+apps/web/public/worklets/*.js.map

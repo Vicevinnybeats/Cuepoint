@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background: #0a0a0b;
+  color: #e8e6e1;
+}
+
+/* LCD-style readouts: amber glow, tabular digits so they don't jitter. */
+.lcd {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: #ffb020;
+  text-shadow: 0 0 6px rgba(255, 176, 32, 0.45);
+}
+
+.lcd-dim {
+  color: #8a5c14;
+  text-shadow: none;
+}
+
+/* Hardware panel texture: a faint brushed-metal gradient, not an image. */
+.panel-surface {
+  background-image: linear-gradient(180deg, #232326 0%, #1c1c1f 40%, #19191c 100%);
+}
+
+.knob-surface {
+  background-image: radial-gradient(circle at 35% 30%, #3a3a3e 0%, #202023 60%, #17171a 100%);
+}
+
+/* Prevent double-tap zoom and text selection on control surfaces. */
+.control-surface {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}

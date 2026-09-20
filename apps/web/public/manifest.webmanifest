@@ -1,0 +1,14 @@
+{
+  "name": "Cuepoint",
+  "short_name": "Cuepoint",
+  "description": "A DJ app that behaves like Virtual DJ / Traktor Pro, in the browser.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0b",
+  "theme_color": "#0a0a0b",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "192x192 512x512", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icons/icon-maskable.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
