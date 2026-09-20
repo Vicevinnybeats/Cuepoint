@@ -11,6 +11,7 @@ terminology and behaviour — not a toy.
 | `packages/engine`   | Framework-agnostic audio engine: decks, mixer, transport, cues, sync   |
 | `packages/analysis` | Web Workers: BPM detection, key detection, waveform peaks              |
 | `packages/dsp`      | AudioWorklet processors + WASM kernels                                 |
+| `packages/library`  | Local track library — Dexie/IndexedDB, audio never leaves the device  |
 
 ### Hard rules
 
@@ -73,16 +74,20 @@ back to `MessagePort` transport and reports reduced timing fidelity.
   metering), responsive desktop (three-column) and mobile (stacked)
   layouts. Loading a local audio file runs it through decode + the analysis
   worker, then Play drives real playback through the worklet graph — BPM
-  and the waveform shown are measured, not typed in.
+  and the waveform shown are measured, not typed in. Sync retunes a deck's
+  rate to match the other deck's measured BPM.
+- `packages/library` — Dexie/IndexedDB persistence. A loaded track's
+  metadata and audio Blob are saved locally (never synced anywhere); the
+  library panel lists saved tracks and reloads either into deck A or B
+  without re-picking the file. 5 tests (fake-indexeddb).
 
 **Stubbed:**
 
 - Key detection (`packages/analysis`) — the deck display still shows "--"
   for key.
-- Sync reflects UI intent only — BPM is now real, but the engine doesn't yet
-  retune a deck's rate to match the other deck's tempo.
-- No IndexedDB library or Supabase sync — tracks load per-session from the
-  file picker, nothing persists across reloads.
+- No Supabase sync — the library, cues and settings are local-only (by
+  design for audio; cues/loops/settings syncing across devices is not
+  implemented yet).
 - No WASM DSP path — the kernels in `packages/dsp` are the reference
   implementation; a WASM build behind the same interface is a later swap.
 - PWA icons are placeholder SVGs, not designed artwork.

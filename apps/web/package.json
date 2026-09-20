@@ -18,7 +18,9 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "zustand": "^5.0.2",
-    "@cuepoint/analysis": "workspace:*"
+    "@cuepoint/analysis": "workspace:*",
+    "@cuepoint/library": "workspace:*",
+    "dexie": "^4.0.10"
   },
   "devDependencies": {
     "@types/react": "^19.0.2",

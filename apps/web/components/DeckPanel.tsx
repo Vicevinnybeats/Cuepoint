@@ -5,6 +5,7 @@ import { useStore } from "zustand/react";
 import { decksStore, syncRate, clampPitchPercent, rateToPitchPercent } from "@cuepoint/engine";
 import type { DeckId } from "@cuepoint/engine";
 import { emptySnapshot } from "@cuepoint/dsp";
+import { db } from "@cuepoint/library";
 import { useEngine } from "@/lib/engine-provider";
 import { useDeckFrame } from "@/hooks/useDeckFrame";
 import { JogWheel } from "./JogWheel";
@@ -49,15 +50,20 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         // waveform are real, computed off the main thread.
         const { bpm, peaks } = await analyzeTrack(decoded.getChannelData(0), decoded.sampleRate);
         client.loadDecodedTrack(deck, decoded, bpm);
-        loadTrack(deck, {
-          id: `${file.name}-${file.lastModified}`,
+        const id = `${file.name}-${file.lastModified}`;
+        const meta = {
+          id,
           title: file.name.replace(/\.[^.]+$/, ""),
           artist: "",
           bpm,
           key: "--",
           durationSeconds: decoded.duration,
           waveform: peaks,
-        });
+        };
+        loadTrack(deck, meta);
+        // Persisted locally (IndexedDB) so it survives a reload — the audio
+        // blob never leaves the device.
+        void db.tracks.put({ ...meta, audio: file, addedAt: Date.now() });
       } finally {
         setLoading(false);
         e.target.value = "";
