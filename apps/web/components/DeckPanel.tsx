@@ -10,6 +10,7 @@ import { useEngine } from "@/lib/engine-provider";
 import { useDeckFrame } from "@/hooks/useDeckFrame";
 import { JogWheel } from "./JogWheel";
 import { Waveform } from "./Waveform";
+import { LoopControls } from "./LoopControls";
 import { TimeDisplay } from "./TimeDisplay";
 import { Slider } from "./Slider";
 import { cx } from "@/lib/cx";
@@ -27,6 +28,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
   const loadTrack = useStore(decksStore, (s) => s.loadTrack);
   const setHotCue = useStore(decksStore, (s) => s.setHotCue);
   const setPlaying = useStore(decksStore, (s) => s.setPlaying);
+  const setLoopLength = useStore(decksStore, (s) => s.setLoopLength);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(false);
@@ -89,18 +91,35 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
     togglePlay(deck);
   }, [connect, deck, engine, state.playRequested, togglePlay]);
 
+  // TrackReader's loop wrap math assumes the playhead only ever moves inside
+  // the loop or by normal playback — an arbitrary seek while a loop is
+  // active produces a garbled position (see packages/dsp/src/kernels/
+  // resampler.ts). Any manual jump exits the loop first, which also matches
+  // what a CDJ/Traktor does when you hit a cue point while looping.
+  const exitLoopIfActive = useCallback(
+    (client: NonNullable<typeof engine>) => {
+      if (state.loopLengthBeats === null) return;
+      client.clearLoop(deck);
+      setLoopLength(deck, null);
+    },
+    [deck, setLoopLength, state.loopLengthBeats],
+  );
+
   const handleCueDown = useCallback(async () => {
     const client = engine ?? (await connect());
+    exitLoopIfActive(client);
     client.seek(deck, 0);
     client.play(deck);
     setCue(deck, true);
-  }, [connect, deck, engine, setCue]);
+  }, [connect, deck, engine, exitLoopIfActive, setCue]);
 
   const handleCueUp = useCallback(() => {
-    engine?.pause(deck);
-    engine?.seek(deck, 0);
+    if (!engine) return;
+    exitLoopIfActive(engine);
+    engine.pause(deck);
+    engine.seek(deck, 0);
     setCue(deck, false);
-  }, [deck, engine, setCue]);
+  }, [deck, engine, exitLoopIfActive, setCue]);
 
   const handleSync = useCallback(async () => {
     const enabling = !state.syncEnabled;
@@ -133,6 +152,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
       const existing = state.hotCues.find((c) => c.index === index);
       const client = engine ?? (await connect());
       if (existing) {
+        exitLoopIfActive(client);
         client.seek(deck, existing.frame);
         client.play(deck);
         setPlaying(deck, true);
@@ -147,7 +167,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         void db.tracks.update(state.track.id, { cues, updatedAt: Date.now() });
       }
     },
-    [connect, deck, engine, setHotCue, setPlaying, state.hotCues],
+    [connect, deck, engine, exitLoopIfActive, setHotCue, setPlaying, state.hotCues, state.track],
   );
 
   return (
@@ -169,25 +189,32 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         <JogWheel deck={deck} />
       </div>
 
-      <div className="grid grid-cols-4 gap-1.5">
-        {[0, 1, 2, 3].map((index) => {
-          const cue = state.hotCues.find((c) => c.index === index);
-          return (
-            <button
-              key={index}
-              type="button"
-              className={cx(
-                "h-8 rounded-sm border text-[10px] font-bold uppercase",
-                cue ? "border-transparent text-black" : "border-deck-border text-neutral-500",
-              )}
-              style={cue ? { backgroundColor: cue.color } : undefined}
-              onClick={() => void handleHotCue(index)}
-            >
-              {index + 1}
-            </button>
-          );
-        })}
+      <div className="flex flex-col gap-1">
+        <span className="text-[9px] font-medium uppercase tracking-wide text-neutral-500">
+          Hot Cues
+        </span>
+        <div className="grid grid-cols-4 gap-1.5">
+          {[0, 1, 2, 3].map((index) => {
+            const cue = state.hotCues.find((c) => c.index === index);
+            return (
+              <button
+                key={index}
+                type="button"
+                className={cx(
+                  "h-8 rounded-sm border text-[10px] font-bold uppercase",
+                  cue ? "border-transparent text-black" : "border-deck-border text-neutral-500",
+                )}
+                style={cue ? { backgroundColor: cue.color } : undefined}
+                onClick={() => void handleHotCue(index)}
+              >
+                {index + 1}
+              </button>
+            );
+          })}
+        </div>
       </div>
+
+      <LoopControls deck={deck} />
 
       <div className="flex items-center gap-2">
         <button
