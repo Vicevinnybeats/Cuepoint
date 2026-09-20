@@ -44,9 +44,10 @@ export function TimeDisplay({ deck }: { deck: DeckId }) {
           -0:00
         </span>
       </div>
-      <div className="mt-1 flex items-center justify-between text-[11px]">
-        <span className="lcd max-w-[9rem] truncate">{track ? track.title : "No Track"}</span>
-        <span className="lcd">
+      <div className="mt-1 flex items-center justify-between gap-2 text-[11px]">
+        <span className="lcd max-w-[7rem] truncate">{track ? track.title : "No Track"}</span>
+        <span className="lcd shrink-0">{track?.key ?? "--"}</span>
+        <span className="lcd shrink-0">
           <span ref={bpmRef}>--.-</span> BPM
         </span>
       </div>

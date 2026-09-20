@@ -12,6 +12,8 @@ type FrameListener = (snapshot: DeckSnapshot) => void;
 
 export interface AnalysisResult {
   bpm: number;
+  /** Camelot wheel code, e.g. "8A". */
+  key: string;
   peaks: Float32Array;
 }
 
@@ -96,7 +98,7 @@ export function EngineProvider({ children }: { children: React.ReactNode }) {
         const resolve = analysisRequestsRef.current.get(event.data.requestId);
         if (!resolve) return;
         analysisRequestsRef.current.delete(event.data.requestId);
-        resolve({ bpm: event.data.bpm, peaks: new Float32Array(event.data.peaks) });
+        resolve({ bpm: event.data.bpm, key: event.data.key, peaks: new Float32Array(event.data.peaks) });
       };
       analysisWorkerRef.current = worker;
     }

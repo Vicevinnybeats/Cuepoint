@@ -46,9 +46,9 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         const client = await connect();
         const buffer = await file.arrayBuffer();
         const decoded = await client.decode(buffer);
-        // Key detection is stubbed (see packages/analysis); BPM and the
-        // waveform are real, computed off the main thread.
-        const { bpm, peaks } = await analyzeTrack(decoded.getChannelData(0), decoded.sampleRate);
+        // BPM, key (Camelot code) and the waveform are all measured
+        // off the main thread.
+        const { bpm, key, peaks } = await analyzeTrack(decoded.getChannelData(0), decoded.sampleRate);
         client.loadDecodedTrack(deck, decoded, bpm);
         const id = `${file.name}-${file.lastModified}`;
         const meta = {
@@ -56,7 +56,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
           title: file.name.replace(/\.[^.]+$/, ""),
           artist: "",
           bpm,
-          key: "--",
+          key,
           durationSeconds: decoded.duration,
           waveform: peaks,
         };

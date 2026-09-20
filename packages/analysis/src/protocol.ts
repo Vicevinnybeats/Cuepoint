@@ -13,6 +13,8 @@ export interface AnalyzeResult {
   type: "result";
   requestId: number;
   bpm: number;
+  /** Camelot wheel code, e.g. "8A". */
+  key: string;
   /** Float32Array bytes, transferred back. */
   peaks: ArrayBuffer;
 }

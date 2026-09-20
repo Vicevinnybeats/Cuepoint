@@ -57,6 +57,7 @@ export function LibraryPanel() {
             <div className="min-w-0 flex-1 truncate">
               <span className="text-neutral-200">{track.title}</span>
               <span className="lcd-dim ml-2">{track.bpm.toFixed(1)} BPM</span>
+              <span className="lcd-dim ml-2">{track.key}</span>
             </div>
             <div className="flex shrink-0 gap-1">
               <button

@@ -79,10 +79,13 @@ back to `MessagePort` transport and reports reduced timing fidelity.
   facade over the AudioContext/worklet graph, pitch/sync math.
 - `packages/analysis` — offline BPM detection (energy-envelope
   autocorrelation with parabolic sub-frame refinement, folds octave errors
-  into a 70-180 BPM range) and waveform peak extraction, both running in a
-  Web Worker so a long track never blocks the main thread. 14 tests,
-  including detection accuracy against synthetic click tracks at five
-  tempos.
+  into a 70-180 BPM range), key detection (12-bin chroma via a minimal FFT,
+  correlated against the Krumhansl-Kessler profiles, reported as a Camelot
+  wheel code — the harmonic-mixing notation DJ software uses), and
+  waveform peak extraction. All three run in a Web Worker so a long track
+  never blocks the main thread. 21 tests, including BPM accuracy against
+  synthetic click tracks at five tempos and key detection against major/
+  minor triads.
 - `apps/web` — full deck + mixer UI (jogwheels, waveform display, 3-band EQ,
   filter, hot cues, crossfader with curve selection, pitch fader, level
   metering), responsive desktop (three-column) and mobile (stacked)
@@ -103,8 +106,6 @@ back to `MessagePort` transport and reports reduced timing fidelity.
 
 **Stubbed:**
 
-- Key detection (`packages/analysis`) — the deck display still shows "--"
-  for key.
 - No Supabase sync — the library, cues and settings are local-only (by
   design for audio; cues/loops/settings syncing across devices is not
   implemented yet).
