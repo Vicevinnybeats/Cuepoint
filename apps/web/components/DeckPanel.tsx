@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useStore } from "zustand/react";
-import { decksStore } from "@cuepoint/engine";
+import { decksStore, syncRate, clampPitchPercent, rateToPitchPercent } from "@cuepoint/engine";
 import type { DeckId } from "@cuepoint/engine";
 import { emptySnapshot } from "@cuepoint/dsp";
 import { useEngine } from "@/lib/engine-provider";
@@ -16,6 +16,7 @@ import { cx } from "@/lib/cx";
 const HOT_CUE_COLORS = ["#ff5a3c", "#ffb020", "#35d07f", "#4aa8ff"];
 
 export function DeckPanel({ deck }: { deck: DeckId }) {
+  const otherDeck: DeckId = deck === "A" ? "B" : "A";
   const { engine, connect, analyzeTrack } = useEngine();
   const state = useStore(decksStore, (s) => s.decks[deck]);
   const setPitch = useStore(decksStore, (s) => s.setPitch);
@@ -84,6 +85,23 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
     engine?.seek(deck, 0);
     setCue(deck, false);
   }, [deck, engine, setCue]);
+
+  const handleSync = useCallback(async () => {
+    const enabling = !state.syncEnabled;
+    toggleSync(deck);
+    if (!enabling) return;
+    const other = decksStore.getState().decks[otherDeck];
+    if (!other.track || !state.track) return; // nothing loaded to sync to
+
+    const ownRate = 1 + state.pitchPercent / 100;
+    const targetBpm = other.track.bpm * (1 + other.pitchPercent / 100);
+    const rate = syncRate(targetBpm, state.track.bpm, ownRate);
+    const percent = clampPitchPercent(rateToPitchPercent(rate));
+
+    setPitch(deck, percent);
+    const client = engine ?? (await connect());
+    client.setRate(deck, 1 + percent / 100);
+  }, [connect, deck, engine, otherDeck, setPitch, state, toggleSync]);
 
   const handlePitch = useCallback(
     (v: number) => {
@@ -184,8 +202,8 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
               ? "border-transparent bg-green-500 text-black"
               : "border-deck-border bg-panel-raised text-neutral-200",
           )}
-          onClick={() => toggleSync(deck)}
-          title="Sync intent only — the engine does not yet retune the deck to match tempo."
+          onClick={() => void handleSync()}
+          title="Match this deck's tempo to the other deck's BPM."
         >
           Sync
         </button>
