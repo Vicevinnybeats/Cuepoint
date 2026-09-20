@@ -48,7 +48,7 @@ export function Slider({ value, onChange, bipolar = false, height = 160, label }
     <div className="flex flex-col items-center gap-1">
       <div
         ref={trackRef}
-        className="control-surface relative w-7 cursor-ns-resize rounded-md border border-deck-border bg-panel-sunken"
+        className="control-surface relative w-9 cursor-ns-resize rounded-md border border-deck-border bg-panel-sunken"
         style={{ height }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -63,8 +63,8 @@ export function Slider({ value, onChange, bipolar = false, height = 160, label }
           <div className="pointer-events-none absolute left-0 right-0 top-1/2 h-px bg-deck-border" />
         )}
         <div
-          className="pointer-events-none absolute left-1/2 h-3 w-10 -translate-x-1/2 rounded-sm border border-black/40 bg-neutral-300 shadow-md"
-          style={{ top: `calc(${thumbTopPercent}% - 6px)` }}
+          className="pointer-events-none absolute left-1/2 h-4 w-12 -translate-x-1/2 rounded-sm border border-black/40 bg-neutral-300 shadow-md"
+          style={{ top: `calc(${thumbTopPercent}% - 8px)` }}
         />
       </div>
       {label && (

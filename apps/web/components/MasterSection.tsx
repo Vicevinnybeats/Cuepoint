@@ -68,7 +68,7 @@ export function MasterSection() {
             type="button"
             onClick={() => handleCurve(id)}
             className={cx(
-              "rounded-sm border px-1.5 py-1 text-[9px] font-semibold uppercase",
+              "min-h-9 rounded-sm border px-2 py-1.5 text-[10px] font-semibold uppercase",
               mixer.crossfaderCurve === id
                 ? "border-transparent bg-amber text-black"
                 : "border-deck-border text-neutral-400",
@@ -78,7 +78,7 @@ export function MasterSection() {
           </button>
         ))}
       </div>
-      <div className="w-40">
+      <div className="w-full max-w-xs">
         <Crossfader value={mixer.crossfaderPosition} onChange={handleCrossfader} />
       </div>
     </div>

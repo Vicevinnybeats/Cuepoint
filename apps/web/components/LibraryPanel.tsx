@@ -66,21 +66,21 @@ export function LibraryPanel() {
             <div className="flex shrink-0 gap-1">
               <button
                 type="button"
-                className="rounded-sm border border-deck-border px-2 py-0.5 font-bold text-neutral-300"
+                className="min-h-9 min-w-9 rounded-sm border border-deck-border px-2.5 py-1.5 font-bold text-neutral-300"
                 onClick={() => void handleLoad("A", track)}
               >
                 A
               </button>
               <button
                 type="button"
-                className="rounded-sm border border-deck-border px-2 py-0.5 font-bold text-neutral-300"
+                className="min-h-9 min-w-9 rounded-sm border border-deck-border px-2.5 py-1.5 font-bold text-neutral-300"
                 onClick={() => void handleLoad("B", track)}
               >
                 B
               </button>
               <button
                 type="button"
-                className="rounded-sm border border-deck-border px-2 py-0.5 text-red-400"
+                className="min-h-9 min-w-9 rounded-sm border border-deck-border px-2.5 py-1.5 text-red-400"
                 onClick={() => void db.tracks.delete(track.id)}
                 aria-label={`Remove ${track.title} from the library`}
               >

@@ -6,9 +6,15 @@
   color-scheme: dark;
 }
 
+html,
 body {
   background: #0a0a0b;
   color: #e8e6e1;
+  /* A control surface with many absolutely-positioned children is an easy
+     way to leak one pixel of horizontal overflow on a phone; don't let it
+     turn into a scrollable page. */
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 /* LCD-style readouts: amber glow, tabular digits so they don't jitter. */

@@ -15,7 +15,7 @@ const ASSUMED_SAMPLE_RATE = 48000;
 /** 33 1/3 RPM, the turntable standard most jogwheels emulate. */
 const DEG_PER_SECOND = (100 / 3 / 60) * 360;
 
-export function JogWheel({ deck, size = 200 }: { deck: DeckId; size?: number }) {
+export function JogWheel({ deck }: { deck: DeckId }) {
   const platterRef = useRef<HTMLDivElement | null>(null);
 
   useDeckFrame(deck, (snapshot) => {
@@ -26,10 +26,9 @@ export function JogWheel({ deck, size = 200 }: { deck: DeckId; size?: number }) 
   });
 
   return (
-    <div
-      className="relative flex items-center justify-center rounded-full border-4 border-deck-border bg-panel-sunken shadow-panel"
-      style={{ width: size, height: size }}
-    >
+    // Sized responsively rather than by a fixed pixel prop: comfortably
+    // large on a phone without forcing desktop into the same size.
+    <div className="relative flex h-48 w-48 items-center justify-center rounded-full border-4 border-deck-border bg-panel-sunken shadow-panel sm:h-52 sm:w-52 lg:h-56 lg:w-56">
       <div
         ref={platterRef}
         className="absolute inset-3 rounded-full"

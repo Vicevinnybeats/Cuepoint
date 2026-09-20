@@ -61,7 +61,7 @@ export function SyncPanel() {
 
       <button
         type="button"
-        className="rounded-md border border-deck-border bg-panel-raised py-1.5 text-xs font-bold uppercase text-neutral-200 disabled:opacity-50"
+        className="min-h-11 rounded-md border border-deck-border bg-panel-raised py-2.5 text-xs font-bold uppercase text-neutral-200 disabled:opacity-50"
         onClick={() => void handleSync()}
         disabled={status.kind === "syncing" || !workerUrl}
       >

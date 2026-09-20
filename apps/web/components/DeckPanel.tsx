@@ -201,7 +201,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
                 key={index}
                 type="button"
                 className={cx(
-                  "h-8 rounded-sm border text-[10px] font-bold uppercase",
+                  "h-11 rounded-sm border text-xs font-bold uppercase",
                   cue ? "border-transparent text-black" : "border-deck-border text-neutral-500",
                 )}
                 style={cue ? { backgroundColor: cue.color } : undefined}
@@ -219,7 +219,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
       <div className="flex items-center gap-2">
         <button
           type="button"
-          className="flex-1 rounded-md border border-deck-border bg-panel-raised py-2 text-xs font-bold uppercase text-neutral-200 active:bg-neutral-700"
+          className="flex-1 rounded-md border border-deck-border bg-panel-raised py-3 text-xs font-bold uppercase text-neutral-200 active:bg-neutral-700"
           onPointerDown={() => void handleCueDown()}
           onPointerUp={handleCueUp}
           onPointerLeave={handleCueUp}
@@ -229,7 +229,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         <button
           type="button"
           className={cx(
-            "flex-[2] rounded-md py-2 text-xs font-bold uppercase",
+            "flex-[2] rounded-md py-3 text-xs font-bold uppercase",
             state.playRequested
               ? "bg-accent text-black"
               : "border border-deck-border bg-panel-raised text-neutral-200",
@@ -241,7 +241,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         <button
           type="button"
           className={cx(
-            "flex-1 rounded-md border py-2 text-xs font-bold uppercase",
+            "flex-1 rounded-md border py-3 text-xs font-bold uppercase",
             state.syncEnabled
               ? "border-transparent bg-green-500 text-black"
               : "border-deck-border bg-panel-raised text-neutral-200",
