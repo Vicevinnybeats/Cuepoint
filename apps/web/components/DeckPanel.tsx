@@ -51,6 +51,10 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         const { bpm, key, peaks } = await analyzeTrack(decoded.getChannelData(0), decoded.sampleRate);
         client.loadDecodedTrack(deck, decoded, bpm);
         const id = `${file.name}-${file.lastModified}`;
+        // The same file loaded before (same name + mtime => same id) may
+        // already carry hot cues from a previous session — restore them
+        // rather than starting blank.
+        const existing = await db.tracks.get(id);
         const meta = {
           id,
           title: file.name.replace(/\.[^.]+$/, ""),
@@ -60,10 +64,16 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
           durationSeconds: decoded.duration,
           waveform: peaks,
         };
-        loadTrack(deck, meta);
+        loadTrack(deck, meta, existing?.cues ?? []);
         // Persisted locally (IndexedDB) so it survives a reload — the audio
         // blob never leaves the device.
-        void db.tracks.put({ ...meta, audio: file, addedAt: Date.now() });
+        void db.tracks.put({
+          ...meta,
+          audio: file,
+          cues: existing?.cues ?? [],
+          addedAt: existing?.addedAt ?? Date.now(),
+          updatedAt: Date.now(),
+        });
       } finally {
         setLoading(false);
         e.target.value = "";
@@ -130,11 +140,12 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
       }
       const snapshot = emptySnapshot();
       client.reader(deck).read(snapshot);
-      setHotCue(deck, {
-        index,
-        frame: snapshot.playheadFrames,
-        color: HOT_CUE_COLORS[index] ?? "#ffffff",
-      });
+      const cue = { index, frame: snapshot.playheadFrames, color: HOT_CUE_COLORS[index] ?? "#ffffff" };
+      setHotCue(deck, cue);
+      if (state.track) {
+        const cues = [...state.hotCues.filter((c) => c.index !== index), cue];
+        void db.tracks.update(state.track.id, { cues, updatedAt: Date.now() });
+      }
     },
     [connect, deck, engine, setHotCue, setPlaying, state.hotCues],
   );

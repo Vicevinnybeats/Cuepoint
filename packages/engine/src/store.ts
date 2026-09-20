@@ -32,7 +32,7 @@ export interface DecksStore {
   togglePlay(deck: DeckId): void;
   setPlaying(deck: DeckId, playing: boolean): void;
   toggleSync(deck: DeckId): void;
-  loadTrack(deck: DeckId, track: DeckUiState["track"]): void;
+  loadTrack(deck: DeckId, track: DeckUiState["track"], hotCues?: HotCue[]): void;
   setHotCue(deck: DeckId, cue: HotCue): void;
   clearHotCue(deck: DeckId, index: number): void;
   setLoopLength(deck: DeckId, beats: number | null): void;
@@ -76,9 +76,9 @@ export const decksStore = createStore<DecksStore>((set) => ({
         [deck]: { ...s.decks[deck], syncEnabled: !s.decks[deck].syncEnabled },
       },
     })),
-  loadTrack: (deck, track) =>
+  loadTrack: (deck, track, hotCues = []) =>
     set((s) => ({
-      decks: { ...s.decks, [deck]: { ...defaultDeck(), track } },
+      decks: { ...s.decks, [deck]: { ...defaultDeck(), track, hotCues } },
     })),
   setHotCue: (deck, cue) =>
     set((s) => {

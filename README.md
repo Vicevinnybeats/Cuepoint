@@ -12,7 +12,9 @@ terminology and behaviour — not a toy.
 | `packages/analysis` | Web Workers: BPM detection, key detection, waveform peaks              |
 | `packages/dsp`      | AudioWorklet processors + WASM kernels                                 |
 | `packages/library`  | Local track library — Dexie/IndexedDB, audio never leaves the device  |
+| `packages/sync`     | Client for the Cloudflare sync worker (metadata/cues/settings only)   |
 | `apps/desktop`      | Electron shell wrapping the same build as a native desktop app        |
+| `apps/sync-worker`  | Cloudflare Worker + D1: last-write-wins sync store                    |
 
 ### Hard rules
 
@@ -26,8 +28,8 @@ terminology and behaviour — not a toy.
   playhead/meters from shared memory on `requestAnimationFrame` — never through
   React state at audio rate.
 - Audio files never leave the device. IndexedDB (Dexie) is the library.
-  Supabase syncs metadata, cues, loops, playlists and settings only, with RLS
-  per user.
+  A Cloudflare Worker + D1 syncs metadata, cues and settings only, keyed by
+  a random per-install "sync key" instead of an account (see below).
 
 ### Targets
 
@@ -61,6 +63,31 @@ Cross-origin isolation is required for `SharedArrayBuffer`. `apps/web` sets
 `Cross-Origin-Embedder-Policy: require-corp`; without them the engine falls
 back to `MessagePort` transport and reports reduced timing fidelity.
 
+### Sync (Cloudflare)
+
+Metadata sync is a Cloudflare Worker (`apps/sync-worker`) backed by D1 —
+`sync_items(sync_key, collection, id, data, updated_at, deleted)`, last-write-
+wins on `updated_at`. No accounts: a random "sync key" generated on-device
+(`packages/sync`) stands in for one, and pasting it into another device's
+Sync panel links them. Only track metadata, hot cues, and mixer settings
+sync — never audio, and sync only updates a track that's already loaded
+locally on both devices (matched by filename + modified time); it never
+creates a library entry from a remote record, because there's no audio
+behind it on this device.
+
+The D1 database (`cuepoint-sync`) already exists in this Cloudflare
+account with its schema applied. Deploying the Worker itself needs a login,
+which isn't something this session can do on your behalf:
+
+```sh
+cd apps/sync-worker
+npx wrangler login
+npx wrangler deploy
+```
+
+That prints a `*.workers.dev` URL — paste it into the Sync panel's Worker
+URL field in the app.
+
 ## Testing
 
 - Every module has Vitest unit tests.
@@ -74,7 +101,7 @@ back to `MessagePort` transport and reports reduced timing fidelity.
 **Done:**
 
 - `packages/dsp` — biquad/EQ3/filter/limiter/meter/resampler kernels, seqlock
-  shared-state protocol, deck + master AudioWorklet processors. 87 tests.
+  shared-state protocol, deck + master AudioWorklet processors. 75 tests.
 - `packages/engine` — UI store (zustand/vanilla), `EngineClient` browser
   facade over the AudioContext/worklet graph, pitch/sync math.
 - `packages/analysis` — offline BPM detection (energy-envelope
@@ -83,7 +110,7 @@ back to `MessagePort` transport and reports reduced timing fidelity.
   correlated against the Krumhansl-Kessler profiles, reported as a Camelot
   wheel code — the harmonic-mixing notation DJ software uses), and
   waveform peak extraction. All three run in a Web Worker so a long track
-  never blocks the main thread. 21 tests, including BPM accuracy against
+  never blocks the main thread. 20 tests, including BPM accuracy against
   synthetic click tracks at five tempos and key detection against major/
   minor triads.
 - `apps/web` — full deck + mixer UI (jogwheels, waveform display, 3-band EQ,
@@ -94,9 +121,16 @@ back to `MessagePort` transport and reports reduced timing fidelity.
   and the waveform shown are measured, not typed in. Sync retunes a deck's
   rate to match the other deck's measured BPM.
 - `packages/library` — Dexie/IndexedDB persistence. A loaded track's
-  metadata and audio Blob are saved locally (never synced anywhere); the
-  library panel lists saved tracks and reloads either into deck A or B
-  without re-picking the file. 5 tests (fake-indexeddb).
+  metadata, hot cues and audio Blob are saved locally; the library panel
+  lists saved tracks and reloads either into deck A or B (cues restored)
+  without re-picking the file. 6 tests (fake-indexeddb).
+- `packages/sync` + `apps/sync-worker` — Cloudflare Worker/D1 sync for
+  track metadata, hot cues and mixer settings, last-write-wins by
+  `updatedAt`, keyed by a random per-install sync key instead of an
+  account. Verified against the live D1 database (a stale write with an
+  older `updatedAt` is correctly rejected). 7 tests on the client
+  (mocked fetch); the Worker itself needs a login to deploy, which this
+  session can't do — see "Sync (Cloudflare)" above.
 - Two install targets, one codebase: a real service worker
   (`apps/web/public/sw.js`, cache-first for same-origin GETs) makes the PWA
   work offline once installed, and `apps/desktop` wraps the same build as
@@ -106,9 +140,10 @@ back to `MessagePort` transport and reports reduced timing fidelity.
 
 **Stubbed:**
 
-- No Supabase sync — the library, cues and settings are local-only (by
-  design for audio; cues/loops/settings syncing across devices is not
-  implemented yet).
+- The sync worker is written and its D1 database exists, but isn't
+  deployed — `npx wrangler deploy` from `apps/sync-worker` needs a login
+  only you can do (see "Sync (Cloudflare)" above). Playlists aren't synced
+  yet, only track metadata/cues and mixer settings.
 - No WASM DSP path — the kernels in `packages/dsp` are the reference
   implementation; a WASM build behind the same interface is a later swap.
 - PWA icons are placeholder SVGs, not designed artwork.

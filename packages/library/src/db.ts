@@ -5,6 +5,12 @@ import Dexie, { type EntityTable } from "dexie";
  * Blob in IndexedDB alongside the metadata the deck needs to reload it
  * without re-decoding through a file picker.
  */
+export interface StoredHotCue {
+  index: number;
+  frame: number;
+  color: string;
+}
+
 export interface StoredTrack {
   id: string;
   title: string;
@@ -14,7 +20,10 @@ export interface StoredTrack {
   durationSeconds: number;
   waveform: Float32Array;
   audio: Blob;
+  cues: StoredHotCue[];
   addedAt: number;
+  /** Bumped on every change; the sync worker uses this for last-write-wins. */
+  updatedAt: number;
 }
 
 export class LibraryDB extends Dexie {

@@ -24,15 +24,19 @@ export function LibraryPanel() {
       const buffer = await track.audio.arrayBuffer();
       const decoded = await client.decode(buffer);
       client.loadDecodedTrack(deck, decoded, track.bpm);
-      loadTrack(deck, {
-        id: track.id,
-        title: track.title,
-        artist: track.artist,
-        bpm: track.bpm,
-        key: track.key,
-        durationSeconds: track.durationSeconds,
-        waveform: track.waveform,
-      });
+      loadTrack(
+        deck,
+        {
+          id: track.id,
+          title: track.title,
+          artist: track.artist,
+          bpm: track.bpm,
+          key: track.key,
+          durationSeconds: track.durationSeconds,
+          waveform: track.waveform,
+        },
+        track.cues,
+      );
     },
     [connect, engine, loadTrack],
   );

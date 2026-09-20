@@ -1,0 +1,8 @@
+name = "cuepoint-sync"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "cuepoint-sync"
+database_id = "3f640a3b-9658-4aa4-826d-e5cfaa134b26"

@@ -14,3 +14,4 @@ apps/web/public/workers/*.js
 apps/web/public/workers/*.js.map
 apps/web/out/
 apps/desktop/release/
+apps/sync-worker/.wrangler/

@@ -21,7 +21,8 @@
     "zustand": "^5.0.2",
     "@cuepoint/analysis": "workspace:*",
     "@cuepoint/library": "workspace:*",
-    "dexie": "^4.0.10"
+    "dexie": "^4.0.10",
+    "@cuepoint/sync": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.0.2",

@@ -15,7 +15,7 @@ const config: NextConfig = {
   // The workspace packages are consumed as TypeScript source (workspace:*,
   // no build step of their own), so Next has to run them through its own
   // compiler rather than treating them as pre-built node_modules code.
-  transpilePackages: ["@cuepoint/dsp", "@cuepoint/engine", "@cuepoint/analysis", "@cuepoint/library"],
+  transpilePackages: ["@cuepoint/dsp", "@cuepoint/engine", "@cuepoint/analysis", "@cuepoint/library", "@cuepoint/sync"],
   webpack(webpackConfig) {
     // Our source uses ESM-style relative imports with an explicit ".js"
     // extension pointing at ".ts" files (required by "verbatimModuleSyntax"

@@ -3,6 +3,7 @@ import { DeckPanel } from "@/components/DeckPanel";
 import { MixerChannel } from "@/components/MixerChannel";
 import { MasterSection } from "@/components/MasterSection";
 import { LibraryPanel } from "@/components/LibraryPanel";
+import { SyncPanel } from "@/components/SyncPanel";
 
 export default function Page() {
   return (
@@ -27,7 +28,10 @@ export default function Page() {
           <DeckPanel deck="B" />
         </div>
 
-        <LibraryPanel />
+        <div className="grid gap-3 lg:grid-cols-2">
+          <LibraryPanel />
+          <SyncPanel />
+        </div>
       </main>
     </EngineProvider>
   );

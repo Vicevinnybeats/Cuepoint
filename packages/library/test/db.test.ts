@@ -13,7 +13,9 @@ function makeTrack(overrides: Partial<StoredTrack> = {}): StoredTrack {
     durationSeconds: 200,
     waveform: new Float32Array([0.1, 0.5, 0.2]),
     audio: new Blob([new Uint8Array([1, 2, 3])]),
+    cues: [],
     addedAt: Date.now(),
+    updatedAt: Date.now(),
     ...overrides,
   };
 }
@@ -52,6 +54,17 @@ describe("LibraryDB", () => {
     await db.tracks.put(makeTrack({ id: "gone" }));
     await db.tracks.delete("gone");
     expect(await db.tracks.get("gone")).toBeUndefined();
+  });
+
+  it("persists hot cues and lets them be updated in place", async () => {
+    await db.tracks.put(makeTrack({ id: "cued", cues: [] }));
+    await db.tracks.update("cued", {
+      cues: [{ index: 0, frame: 4800, color: "#ff5a3c" }],
+      updatedAt: 999,
+    });
+    const track = await db.tracks.get("cued");
+    expect(track?.cues).toEqual([{ index: 0, frame: 4800, color: "#ff5a3c" }]);
+    expect(track?.updatedAt).toBe(999);
   });
 
   it("round-trips the audio blob", async () => {
