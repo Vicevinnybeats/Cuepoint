@@ -3,6 +3,16 @@
 A professional DJ application for the web. Virtual DJ / Traktor Pro workflows,
 terminology and behaviour — not a toy.
 
+## Try it now
+
+**https://cuepoint-green.vercel.app** — deployed from this branch, auto-
+redeploys on every push. Open it on your phone: tap Load Track on a deck to
+pick a local audio file, then Play. iOS Safari and Chrome will offer "Add to
+Home Screen" — that installs it as the PWA.
+
+(This is a personal Vercel Hobby project, not a production service — expect
+it to move if the branch merges or the project gets renamed.)
+
 ## Architecture
 
 | Package             | Responsibility                                                        |
@@ -137,6 +147,12 @@ URL field in the app.
   a native Electron app — verified: static export builds clean, and the
   bundled server was smoke-tested standalone (200 + correct COOP/COEP
   headers).
+- Deployed to Vercel (git-linked, auto-redeploys on push) for real phone
+  testing — a local dev server isn't installable as a PWA since it isn't
+  a secure context. See "Try it now" above.
+- Mobile-first layout: the mixer no longer forces three channel strips
+  into one unusable row on a phone screen, touch targets are a real ~44px,
+  and the jog wheel sizes responsively instead of a fixed 200px.
 
 **Stubbed:**
 
