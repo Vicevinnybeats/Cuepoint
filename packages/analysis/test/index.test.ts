@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { ANALYSIS_IMPLEMENTED } from "../src/index.js";
+import { KEY_DETECTION_IMPLEMENTED } from "../src/index.js";
 
 describe("analysis package", () => {
-  it("is a documented stub, not silently missing", () => {
-    expect(ANALYSIS_IMPLEMENTED).toBe(false);
+  it("documents key detection as not implemented rather than silently missing", () => {
+    expect(KEY_DETECTION_IMPLEMENTED).toBe(false);
   });
 });

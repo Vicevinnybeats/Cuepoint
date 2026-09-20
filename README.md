@@ -62,16 +62,25 @@ back to `MessagePort` transport and reports reduced timing fidelity.
   shared-state protocol, deck + master AudioWorklet processors. 87 tests.
 - `packages/engine` — UI store (zustand/vanilla), `EngineClient` browser
   facade over the AudioContext/worklet graph, pitch/sync math.
-- `apps/web` — full deck + mixer UI (jogwheels, 3-band EQ, filter, hot cues,
-  crossfader with curve selection, pitch fader, level metering), responsive
-  desktop (three-column) and mobile (stacked) layouts. Loading a local audio
-  file and pressing Play drives real playback through the worklet graph.
+- `packages/analysis` — offline BPM detection (energy-envelope
+  autocorrelation with parabolic sub-frame refinement, folds octave errors
+  into a 70-180 BPM range) and waveform peak extraction, both running in a
+  Web Worker so a long track never blocks the main thread. 14 tests,
+  including detection accuracy against synthetic click tracks at five
+  tempos.
+- `apps/web` — full deck + mixer UI (jogwheels, waveform display, 3-band EQ,
+  filter, hot cues, crossfader with curve selection, pitch fader, level
+  metering), responsive desktop (three-column) and mobile (stacked)
+  layouts. Loading a local audio file runs it through decode + the analysis
+  worker, then Play drives real playback through the worklet graph — BPM
+  and the waveform shown are measured, not typed in.
 
 **Stubbed:**
 
-- `packages/analysis` — BPM/key/waveform detection. BPM is currently typed in
-  by hand per track; Sync reflects UI intent only until this lands.
-- No waveform display (needs the peaks worker above).
+- Key detection (`packages/analysis`) — the deck display still shows "--"
+  for key.
+- Sync reflects UI intent only — BPM is now real, but the engine doesn't yet
+  retune a deck's rate to match the other deck's tempo.
 - No IndexedDB library or Supabase sync — tracks load per-session from the
   file picker, nothing persists across reloads.
 - No WASM DSP path — the kernels in `packages/dsp` are the reference

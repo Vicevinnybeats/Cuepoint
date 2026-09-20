@@ -1,6 +1,10 @@
 /**
- * STUB. Web Worker-based BPM detection, key detection and waveform peak
- * extraction land here. Not implemented yet — apps/web currently takes BPM
- * as user-entered metadata and has no waveform display.
+ * BPM detection and waveform extraction run in a Web Worker (worker.ts).
+ * Key detection is not implemented — apps/web still shows "--" for key.
  */
-export const ANALYSIS_IMPLEMENTED = false;
+export const KEY_DETECTION_IMPLEMENTED = false;
+
+export { detectBpm, computeEnvelope } from "./bpm.js";
+export type { BpmDetectionOptions } from "./bpm.js";
+export { computePeaks } from "./waveform.js";
+export type { AnalyzeRequest, AnalyzeResult } from "./protocol.js";

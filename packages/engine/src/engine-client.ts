@@ -77,10 +77,15 @@ export class EngineClient {
     return this.readers[target];
   }
 
-  async loadTrack(deck: DeckId, data: ArrayBuffer, bpm: number): Promise<void> {
-    // decodeAudioData detaches nothing of ours; the worklet takes ownership
-    // of the channel buffers it's handed via transfer.
-    const decoded = await this.ctx.decodeAudioData(data.slice(0));
+  /** Decode without loading — callers that also need the raw samples for
+   * BPM/waveform analysis decode once and pass the result to
+   * `loadDecodedTrack` rather than decoding twice. */
+  async decode(data: ArrayBuffer): Promise<AudioBuffer> {
+    // decodeAudioData can detach the buffer it's given, so hand it a copy.
+    return this.ctx.decodeAudioData(data.slice(0));
+  }
+
+  loadDecodedTrack(deck: DeckId, decoded: AudioBuffer, bpm: number): void {
     const channels: ArrayBuffer[] = [];
     for (let i = 0; i < decoded.numberOfChannels; i++) {
       channels.push(decoded.getChannelData(i).slice().buffer);
@@ -92,7 +97,13 @@ export class EngineClient {
       sampleRate: decoded.sampleRate,
       bpm,
     };
+    // The worklet takes ownership of these buffers via transfer.
     this.deckNodes[deck].port.postMessage(message, channels);
+  }
+
+  async loadTrack(deck: DeckId, data: ArrayBuffer, bpm: number): Promise<void> {
+    const decoded = await this.decode(data);
+    this.loadDecodedTrack(deck, decoded, bpm);
   }
 
   send(deck: DeckId, message: DeckMessage): void {

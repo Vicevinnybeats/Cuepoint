@@ -8,6 +8,7 @@ import { emptySnapshot } from "@cuepoint/dsp";
 import { useEngine } from "@/lib/engine-provider";
 import { useDeckFrame } from "@/hooks/useDeckFrame";
 import { JogWheel } from "./JogWheel";
+import { Waveform } from "./Waveform";
 import { TimeDisplay } from "./TimeDisplay";
 import { Slider } from "./Slider";
 import { cx } from "@/lib/cx";
@@ -15,7 +16,7 @@ import { cx } from "@/lib/cx";
 const HOT_CUE_COLORS = ["#ff5a3c", "#ffb020", "#35d07f", "#4aa8ff"];
 
 export function DeckPanel({ deck }: { deck: DeckId }) {
-  const { engine, connect } = useEngine();
+  const { engine, connect, analyzeTrack } = useEngine();
   const state = useStore(decksStore, (s) => s.decks[deck]);
   const setPitch = useStore(decksStore, (s) => s.setPitch);
   const togglePlay = useStore(decksStore, (s) => s.togglePlay);
@@ -41,27 +42,27 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
       setLoading(true);
       try {
         const client = await connect();
-        // BPM detection is stubbed (see packages/analysis) — asked here
-        // rather than silently defaulted, so sync and the BPM readout are
-        // never quietly wrong.
-        const bpm = Number(window.prompt("BPM for this track?", "128")) || 128;
         const buffer = await file.arrayBuffer();
-        await client.loadTrack(deck, buffer, bpm);
+        const decoded = await client.decode(buffer);
+        // Key detection is stubbed (see packages/analysis); BPM and the
+        // waveform are real, computed off the main thread.
+        const { bpm, peaks } = await analyzeTrack(decoded.getChannelData(0), decoded.sampleRate);
+        client.loadDecodedTrack(deck, decoded, bpm);
         loadTrack(deck, {
           id: `${file.name}-${file.lastModified}`,
           title: file.name.replace(/\.[^.]+$/, ""),
           artist: "",
           bpm,
           key: "--",
-          durationSeconds: 0,
-          waveform: null,
+          durationSeconds: decoded.duration,
+          waveform: peaks,
         });
       } finally {
         setLoading(false);
         e.target.value = "";
       }
     },
-    [connect, deck, loadTrack],
+    [analyzeTrack, connect, deck, loadTrack],
   );
 
   const handlePlay = useCallback(async () => {
@@ -127,6 +128,8 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
 
       <TimeDisplay deck={deck} />
 
+      <Waveform deck={deck} peaks={state.track?.waveform ?? null} />
+
       <div className="flex items-center justify-center py-1">
         <JogWheel deck={deck} />
       </div>
@@ -182,7 +185,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
               : "border-deck-border bg-panel-raised text-neutral-200",
           )}
           onClick={() => toggleSync(deck)}
-          title="Sync intent only — BPM detection is stubbed, so this does not yet retune the deck."
+          title="Sync intent only — the engine does not yet retune the deck to match tempo."
         >
           Sync
         </button>

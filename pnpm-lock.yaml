@@ -29,6 +29,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@cuepoint/analysis':
+        specifier: workspace:*
+        version: link:../../packages/analysis
       '@cuepoint/dsp':
         specifier: workspace:*
         version: link:../../packages/dsp
