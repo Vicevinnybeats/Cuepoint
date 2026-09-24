@@ -14,7 +14,7 @@ import {
   deleteTrack,
 } from "@cuepoint/library";
 import type { StoredTrack, Playlist } from "@cuepoint/library";
-import { decksStore } from "@cuepoint/engine";
+import { decksStore, DECK_IDS } from "@cuepoint/engine";
 import type { DeckId } from "@cuepoint/engine";
 import { useEngine } from "@/lib/engine-provider";
 import { useLiveQuery } from "@/hooks/useLiveQuery";
@@ -184,12 +184,16 @@ export function LibraryPanel() {
                 <span className="lcd-dim ml-2">{track.key}</span>
               </div>
               <div className="flex shrink-0 gap-1">
-                <button type="button" className={BUTTON} onClick={() => void handleLoad("A", track)}>
-                  A
-                </button>
-                <button type="button" className={BUTTON} onClick={() => void handleLoad("B", track)}>
-                  B
-                </button>
+                {DECK_IDS.map((deck) => (
+                  <button
+                    key={deck}
+                    type="button"
+                    className={BUTTON}
+                    onClick={() => void handleLoad(deck, track)}
+                  >
+                    {deck}
+                  </button>
+                ))}
 
                 {activePlaylist ? (
                   <>

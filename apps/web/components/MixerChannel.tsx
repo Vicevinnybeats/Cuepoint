@@ -4,21 +4,39 @@ import { useCallback } from "react";
 import { useStore } from "zustand/react";
 import { decksStore } from "@cuepoint/engine";
 import type { DeckId } from "@cuepoint/engine";
+import type { CrossfaderAssign } from "@cuepoint/dsp/kernels";
 import { useEngine } from "@/lib/engine-provider";
 import { Knob } from "./Knob";
 import { Slider } from "./Slider";
 import { LevelMeter } from "./LevelMeter";
+import { cx } from "@/lib/cx";
 
 /** Trim gain goes from 0 to 1.5x so the knob's centre detent is unity. */
 const GAIN_RANGE = 1.5;
 
+const ASSIGNS: Array<{ id: CrossfaderAssign; label: string }> = [
+  { id: "A", label: "A" },
+  { id: "thru", label: "Thru" },
+  { id: "B", label: "B" },
+];
+
 export function MixerChannel({ deck }: { deck: DeckId }) {
   const { engine } = useEngine();
   const state = useStore(decksStore, (s) => s.decks[deck]);
+  const assign = useStore(decksStore, (s) => s.mixer.crossfaderAssign[deck]);
   const setEq = useStore(decksStore, (s) => s.setEq);
   const setFilter = useStore(decksStore, (s) => s.setFilter);
   const setGain = useStore(decksStore, (s) => s.setGain);
   const setFader = useStore(decksStore, (s) => s.setFader);
+  const setCrossfaderAssign = useStore(decksStore, (s) => s.setCrossfaderAssign);
+
+  const handleAssign = useCallback(
+    (value: CrossfaderAssign) => {
+      setCrossfaderAssign(deck, value);
+      engine?.setCrossfaderAssign(deck, value);
+    },
+    [deck, engine, setCrossfaderAssign],
+  );
 
   const handleEq = useCallback(
     (band: "eqLow" | "eqMid" | "eqHigh", value: number) => {
@@ -57,6 +75,24 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
   return (
     <div className="panel-surface flex flex-col items-center gap-3 rounded-xl border border-deck-border p-3 shadow-panel landscape:gap-2 landscape:p-2 lg:gap-3 lg:p-3">
       <span className="text-xs font-bold tracking-widest text-neutral-400">{deck}</span>
+      <div className="flex gap-0.5" role="group" aria-label={`Deck ${deck} crossfader assign`}>
+        {ASSIGNS.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => handleAssign(id)}
+            className={cx(
+              "min-h-7 rounded-sm border px-1.5 text-[9px] font-bold uppercase",
+              assign === id
+                ? "border-transparent bg-amber text-black"
+                : "border-deck-border text-neutral-500",
+            )}
+            title={`Assign deck ${deck} to the crossfader's ${label} side`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <Knob
         value={state.gain / GAIN_RANGE}
         onChange={handleGain}

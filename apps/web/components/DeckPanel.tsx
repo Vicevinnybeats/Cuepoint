@@ -19,8 +19,12 @@ import { cx } from "@/lib/cx";
 
 const HOT_CUE_COLORS = ["#ff5a3c", "#ffb020", "#35d07f", "#4aa8ff"];
 
+/** Sync's tempo-match partner: A<->B and C<->D, the two mixing pairs a
+ * 4-channel setup is normally used as. */
+const SYNC_PARTNER: Record<DeckId, DeckId> = { A: "B", B: "A", C: "D", D: "C" };
+
 export function DeckPanel({ deck }: { deck: DeckId }) {
-  const otherDeck: DeckId = deck === "A" ? "B" : "A";
+  const otherDeck: DeckId = SYNC_PARTNER[deck];
   const { engine, connect, analyzeTrack } = useEngine();
   const state = useStore(decksStore, (s) => s.decks[deck]);
   const setTempo = useStore(decksStore, (s) => s.setTempo);
