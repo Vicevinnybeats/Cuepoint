@@ -15,10 +15,24 @@
   "build": {
     "appId": "app.cuepoint.desktop",
     "productName": "Cuepoint",
-    "files": ["main.cjs", "preload.cjs", "../web/out/**"],
-    "directories": { "output": "release" },
-    "mac": { "category": "public.app-category.music" },
-    "linux": { "category": "Audio", "target": "AppImage" },
-    "win": { "target": "nsis" }
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "../web/out/**"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "mac": {
+      "category": "public.app-category.music"
+    },
+    "linux": {
+      "category": "Audio",
+      "target": "AppImage"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "icon": "../web/public/icons/icon-512.png"
   }
 }

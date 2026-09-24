@@ -9,6 +9,15 @@ export const metadata: Metadata = {
   applicationName: "Cuepoint",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Cuepoint" },
+  icons: {
+    icon: [
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+    ],
+    // iOS only uses PNG here; without it "Add to Home Screen" falls back to
+    // a screenshot of the page.
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
 };
 
 export const viewport: Viewport = {
