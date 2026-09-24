@@ -24,7 +24,7 @@ export function JogWheel({ deck }: { deck: DeckId }) {
     // Sized responsively rather than by a fixed pixel prop: comfortably
     // large on a portrait phone, smaller in landscape (where vertical space
     // is the scarce dimension, not screen width), largest on desktop.
-    <div className="relative flex h-48 w-48 items-center justify-center rounded-full border-4 border-deck-border bg-panel-sunken shadow-panel landscape:h-9 landscape:w-9 landscape:border lg:landscape:border-4 sm:h-52 sm:w-52 lg:landscape:h-56 lg:landscape:w-56 lg:h-56 lg:w-56">
+    <div className="relative flex h-48 w-48 items-center justify-center rounded-full border-4 border-deck-border bg-panel-sunken shadow-panel landscape:h-8 landscape:w-8 landscape:border lg:landscape:border-4 sm:h-52 sm:w-52 lg:landscape:h-56 lg:landscape:w-56 lg:h-56 lg:w-56">
       <div
         ref={platterRef}
         className="absolute inset-3 rounded-full landscape:inset-0.5 lg:landscape:inset-3"

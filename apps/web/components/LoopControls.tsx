@@ -50,7 +50,7 @@ export function LoopControls({ deck }: { deck: DeckId }) {
             key={beats}
             type="button"
             className={cx(
-              "h-10 rounded-sm border text-xs font-bold landscape:h-4 landscape:text-[8px] lg:landscape:h-10 lg:landscape:text-xs",
+              "h-10 rounded-sm border text-xs font-bold landscape:h-3.5 landscape:text-[8px] lg:landscape:h-10 lg:landscape:text-xs",
               state.loopLengthBeats === beats
                 ? "border-transparent bg-amber text-black"
                 : "border-deck-border text-neutral-400",

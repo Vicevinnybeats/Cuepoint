@@ -315,7 +315,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         peaks={state.track?.waveform ?? null}
         markers={waveformMarkers}
         onSeek={(position) => void handleSeek(position)}
-        height={compact ? 12 : 48}
+        height={compact ? 10 : 48}
       />
 
       <div className="flex items-center justify-center py-1 landscape:py-0">
@@ -334,7 +334,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
                 key={index}
                 type="button"
                 className={cx(
-                  "h-11 rounded-sm border text-xs font-bold uppercase leading-none landscape:h-4 landscape:text-[8px] lg:landscape:h-11 lg:landscape:text-xs",
+                  "h-11 rounded-sm border text-xs font-bold uppercase leading-none landscape:h-3.5 landscape:text-[8px] lg:landscape:h-11 lg:landscape:text-xs",
                   cue ? "border-transparent text-black" : "border-deck-border text-neutral-500",
                 )}
                 style={cue ? { backgroundColor: cue.color, WebkitTouchCallout: "none" } : undefined}
@@ -368,7 +368,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
       <div className="flex items-center gap-2 landscape:gap-0.5">
         <button
           type="button"
-          className="flex-1 rounded-md border border-deck-border bg-panel-raised py-3 text-xs font-bold uppercase leading-none text-neutral-200 active:bg-neutral-700 landscape:py-0.5 landscape:text-[8px] lg:landscape:py-3 lg:landscape:text-xs"
+          className="flex-1 rounded-md border border-deck-border bg-panel-raised py-3 text-xs font-bold uppercase leading-none text-neutral-200 active:bg-neutral-700 landscape:py-px landscape:text-[8px] lg:landscape:py-3 lg:landscape:text-xs"
           onPointerDown={() => void handleCueDown()}
           onPointerUp={handleCueUp}
           onPointerLeave={handleCueUp}
@@ -378,7 +378,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         <button
           type="button"
           className={cx(
-            "flex-[2] rounded-md py-3 text-xs font-bold uppercase leading-none landscape:py-0.5 landscape:text-[8px] lg:landscape:py-3 lg:landscape:text-xs",
+            "flex-[2] rounded-md py-3 text-xs font-bold uppercase leading-none landscape:py-px landscape:text-[8px] lg:landscape:py-3 lg:landscape:text-xs",
             state.playRequested
               ? "bg-accent text-black"
               : "border border-deck-border bg-panel-raised text-neutral-200",
@@ -390,7 +390,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         <button
           type="button"
           className={cx(
-            "flex-1 rounded-md border py-3 text-xs font-bold uppercase leading-none landscape:py-0.5 landscape:text-[8px] lg:landscape:py-3 lg:landscape:text-xs",
+            "flex-1 rounded-md border py-3 text-xs font-bold uppercase leading-none landscape:py-px landscape:text-[8px] lg:landscape:py-3 lg:landscape:text-xs",
             state.syncEnabled
               ? "border-transparent bg-green-500 text-black"
               : "border-deck-border bg-panel-raised text-neutral-200",
@@ -422,7 +422,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
           value={state.tempoPercent / 8}
           onChange={handleTempo}
           bipolar
-          height={compact ? 22 : 90}
+          height={compact ? 16 : 90}
           label={state.track ? `${(state.track.bpm * (1 + state.tempoPercent / 100)).toFixed(1)} BPM` : "BPM"}
         />
       </div>

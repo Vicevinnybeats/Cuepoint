@@ -5,6 +5,8 @@ import { MasterSection } from "@/components/MasterSection";
 import { CrossfaderPanel } from "@/components/CrossfaderPanel";
 import { LibraryPanel } from "@/components/LibraryPanel";
 import { SyncPanel } from "@/components/SyncPanel";
+import { LibraryModal } from "@/components/LibraryModal";
+import { FitToViewport } from "@/components/FitToViewport";
 
 export default function Page() {
   return (
@@ -15,6 +17,7 @@ export default function Page() {
           <span className="hidden text-[10px] text-neutral-600 sm:inline">
             Tap Load Track on a deck, then Play — audio starts on your first tap.
           </span>
+          <LibraryModal />
         </header>
 
         {/* Portrait phone: everything stacks top to bottom in one column —
@@ -35,39 +38,42 @@ export default function Page() {
             desktop. `landscape:` triggers on viewport aspect ratio,
             independent of `lg:`'s width breakpoint, so a phone rotated
             sideways gets this even though it's narrower than lg. */}
-        <div className="flex flex-col gap-3 landscape:grid landscape:grid-cols-[1fr_auto_auto_auto_1fr] landscape:items-start landscape:gap-1 lg:landscape:gap-3 lg:grid lg:grid-cols-[1fr_auto_auto_auto_1fr] lg:items-start lg:gap-3">
-          <div className="flex flex-col gap-3 landscape:gap-1 lg:landscape:gap-3 lg:gap-3">
-            <DeckPanel deck="A" />
-            <DeckPanel deck="C" />
-          </div>
+        <FitToViewport>
+          <div className="flex flex-col gap-3 landscape:grid landscape:grid-cols-[1fr_auto_auto_auto_1fr] landscape:items-start landscape:gap-1 lg:landscape:gap-3 lg:grid lg:grid-cols-[1fr_auto_auto_auto_1fr] lg:items-start lg:gap-3">
+            <div className="flex flex-col gap-3 landscape:gap-1 lg:landscape:gap-3 lg:gap-3">
+              <DeckPanel deck="A" />
+              <DeckPanel deck="C" />
+            </div>
 
-          <div className="flex flex-col gap-3 landscape:flex-row landscape:gap-1 lg:landscape:gap-3 lg:flex-row lg:gap-3">
-            <MixerChannel deck="A" />
-            <MixerChannel deck="C" />
-          </div>
+            <div className="flex flex-col gap-3 landscape:flex-row landscape:gap-1 lg:landscape:gap-3 lg:flex-row lg:gap-3">
+              <MixerChannel deck="A" />
+              <MixerChannel deck="C" />
+            </div>
 
-          <div className="flex flex-col gap-3 landscape:gap-1 lg:landscape:gap-3 lg:gap-3">
-            <MasterSection />
-            <CrossfaderPanel />
-          </div>
+            <div className="flex flex-col gap-3 landscape:gap-1 lg:landscape:gap-3 lg:gap-3">
+              <MasterSection />
+              <CrossfaderPanel />
+            </div>
 
-          <div className="flex flex-col gap-3 landscape:flex-row landscape:gap-1 lg:landscape:gap-3 lg:flex-row lg:gap-3">
-            <MixerChannel deck="D" />
-            <MixerChannel deck="B" />
-          </div>
+            <div className="flex flex-col gap-3 landscape:flex-row landscape:gap-1 lg:landscape:gap-3 lg:flex-row lg:gap-3">
+              <MixerChannel deck="D" />
+              <MixerChannel deck="B" />
+            </div>
 
-          <div className="flex flex-col gap-3 landscape:gap-1 lg:landscape:gap-3 lg:gap-3">
-            <DeckPanel deck="B" />
-            <DeckPanel deck="D" />
+            <div className="flex flex-col gap-3 landscape:gap-1 lg:landscape:gap-3 lg:gap-3">
+              <DeckPanel deck="B" />
+              <DeckPanel deck="D" />
+            </div>
           </div>
-        </div>
+        </FitToViewport>
 
         {/* Loading a track doesn't need this panel — every deck has its own
-            Load Track file picker — so on a landscape phone (where the deck
-            + mixer grid above already fills the screen) it's dropped rather
-            than forcing a scroll; it comes back in portrait and on desktop,
-            where there's room. */}
-        <div className="grid gap-3 landscape:hidden lg:landscape:grid lg:grid-cols-2">
+            Load Track file picker — so it's dropped from the one-screen
+            layouts (landscape phone, and desktop) rather than forcing a
+            scroll to reach it; the header's Tracklist button opens it as a
+            modal there instead (see LibraryModal). Portrait phone still
+            shows it inline, since it's already a scrolling layout. */}
+        <div className="grid gap-3 landscape:hidden lg:hidden lg:grid-cols-2">
           <LibraryPanel />
           <SyncPanel />
         </div>

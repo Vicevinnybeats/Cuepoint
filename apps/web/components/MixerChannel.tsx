@@ -90,7 +90,7 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
         resetValue={1 / GAIN_RANGE}
         size={knobSize}
       />
-      <div className="flex flex-col gap-2 landscape:gap-1 lg:landscape:gap-2">
+      <div className="flex flex-col gap-2 landscape:flex-row landscape:gap-1 lg:landscape:flex-col lg:landscape:gap-2">
         <Knob value={state.eqHigh} onChange={(v) => handleEq("eqHigh", v)} label="Hi" size={knobSize} />
         <Knob value={state.eqMid} onChange={(v) => handleEq("eqMid", v)} label="Mid" size={knobSize} />
         <Knob value={state.eqLow} onChange={(v) => handleEq("eqLow", v)} label="Low" size={knobSize} />
