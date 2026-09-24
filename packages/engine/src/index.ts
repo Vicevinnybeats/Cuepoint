@@ -3,3 +3,5 @@ export * from "./store.js";
 export * from "./pitch.js";
 export { EngineClient } from "./engine-client.js";
 export type { EngineClientOptions } from "./engine-client.js";
+export { pressCue } from "./cue.js";
+export type { CuePress } from "./cue.js";

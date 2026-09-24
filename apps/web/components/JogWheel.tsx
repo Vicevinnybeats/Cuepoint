@@ -2,24 +2,19 @@
 
 import { useRef } from "react";
 import { useDeckFrame } from "@/hooks/useDeckFrame";
+import { useEngine } from "@/lib/engine-provider";
 import type { DeckId } from "@cuepoint/engine";
 
-/**
- * The shared-state protocol carries the playhead in frames but not the
- * engine's actual AudioContext sample rate. Assuming the common default
- * only skews the platter's visual spin speed on a context that negotiated a
- * different rate — audio playback itself is unaffected, since that runs off
- * the real sample rate inside the worklet.
- */
-const ASSUMED_SAMPLE_RATE = 48000;
 /** 33 1/3 RPM, the turntable standard most jogwheels emulate. */
 const DEG_PER_SECOND = (100 / 3 / 60) * 360;
 
 export function JogWheel({ deck }: { deck: DeckId }) {
   const platterRef = useRef<HTMLDivElement | null>(null);
+  const { engine } = useEngine();
 
   useDeckFrame(deck, (snapshot) => {
-    const seconds = snapshot.playheadFrames / ASSUMED_SAMPLE_RATE;
+    // Frames only flow once the engine exists, so the fallback never applies.
+    const seconds = snapshot.playheadFrames / (engine?.sampleRate ?? 48000);
     const angle = (seconds * DEG_PER_SECOND) % 360;
     const el = platterRef.current;
     if (el) el.style.transform = `rotate(${angle}deg)`;

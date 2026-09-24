@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useStore } from "zustand/react";
-import { decksStore, syncRate, clampPitchPercent, rateToPitchPercent } from "@cuepoint/engine";
+import { decksStore, syncRate, clampPitchPercent, rateToPitchPercent, pressCue } from "@cuepoint/engine";
 import type { DeckId } from "@cuepoint/engine";
 import { emptySnapshot } from "@cuepoint/dsp";
 import { db } from "@cuepoint/library";
@@ -10,6 +10,7 @@ import { useEngine } from "@/lib/engine-provider";
 import { useDeckFrame } from "@/hooks/useDeckFrame";
 import { JogWheel } from "./JogWheel";
 import { Waveform } from "./Waveform";
+import type { WaveformMarker } from "./Waveform";
 import { LoopControls } from "./LoopControls";
 import { TimeDisplay } from "./TimeDisplay";
 import { Slider } from "./Slider";
@@ -22,17 +23,21 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
   const { engine, connect, analyzeTrack } = useEngine();
   const state = useStore(decksStore, (s) => s.decks[deck]);
   const setPitch = useStore(decksStore, (s) => s.setPitch);
-  const togglePlay = useStore(decksStore, (s) => s.togglePlay);
   const toggleSync = useStore(decksStore, (s) => s.toggleSync);
   const setCue = useStore(decksStore, (s) => s.setCue);
   const loadTrack = useStore(decksStore, (s) => s.loadTrack);
   const setHotCue = useStore(decksStore, (s) => s.setHotCue);
   const setPlaying = useStore(decksStore, (s) => s.setPlaying);
   const setLoopLength = useStore(decksStore, (s) => s.setLoopLength);
+  const setCuePoint = useStore(decksStore, (s) => s.setCuePoint);
+  const clearHotCue = useStore(decksStore, (s) => s.clearHotCue);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(false);
   const playingIndicatorRef = useRef<HTMLDivElement | null>(null);
+  /** Cue point of the CUE press currently held for preview, or null. */
+  const cuePreviewRef = useRef<number | null>(null);
+  const longPressRef = useRef<{ timer: ReturnType<typeof setTimeout>; fired: boolean } | null>(null);
 
   useDeckFrame(deck, (snapshot) => {
     const el = playingIndicatorRef.current;
@@ -66,13 +71,14 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
           durationSeconds: decoded.duration,
           waveform: peaks,
         };
-        loadTrack(deck, meta, existing?.cues ?? []);
+        loadTrack(deck, meta, existing?.cues ?? [], existing?.mainCue ?? 0);
         // Persisted locally (IndexedDB) so it survives a reload — the audio
         // blob never leaves the device.
         void db.tracks.put({
           ...meta,
           audio: file,
           cues: existing?.cues ?? [],
+          mainCue: existing?.mainCue ?? 0,
           addedAt: existing?.addedAt ?? Date.now(),
           updatedAt: Date.now(),
         });
@@ -84,12 +90,32 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
     [analyzeTrack, connect, deck, loadTrack],
   );
 
+  /** The engine's own state. The UI store's play flag can be stale — e.g.
+   * after a track runs off its end, the worklet stops but nothing told the
+   * UI — so decisions about playback read the engine, the source of truth. */
+  const readEngine = useCallback(
+    (client: NonNullable<typeof engine>) => {
+      const snapshot = emptySnapshot();
+      client.reader(deck).read(snapshot);
+      return snapshot;
+    },
+    [deck],
+  );
+
   const handlePlay = useCallback(async () => {
     const client = engine ?? (await connect());
-    if (state.playRequested) client.pause(deck);
+    // PLAY while holding CUE: keep playing after CUE is released (CDJ).
+    if (cuePreviewRef.current !== null) {
+      cuePreviewRef.current = null;
+      setCue(deck, false);
+      setPlaying(deck, true);
+      return;
+    }
+    const playing = readEngine(client).playing;
+    if (playing) client.pause(deck);
     else client.play(deck);
-    togglePlay(deck);
-  }, [connect, deck, engine, state.playRequested, togglePlay]);
+    setPlaying(deck, !playing);
+  }, [connect, deck, engine, readEngine, setCue, setPlaying]);
 
   // TrackReader's loop wrap math assumes the playhead only ever moves inside
   // the loop or by normal playback — an arbitrary seek while a loop is
@@ -106,18 +132,47 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
   );
 
   const handleCueDown = useCallback(async () => {
+    if (!state.track) return;
     const client = engine ?? (await connect());
+    const snapshot = readEngine(client);
+    const press = pressCue(snapshot.playing, snapshot.playheadFrames, state.cuePoint);
     exitLoopIfActive(client);
-    client.seek(deck, 0);
+
+    if (press.kind === "return-and-stop") {
+      client.pause(deck);
+      client.seek(deck, press.cuePoint);
+      setPlaying(deck, false);
+      return;
+    }
+    if (press.cuePointChanged) {
+      setCuePoint(deck, press.cuePoint);
+      void db.tracks.update(state.track.id, { mainCue: press.cuePoint, updatedAt: Date.now() });
+    }
+    // Held: preview from the cue point until release.
+    cuePreviewRef.current = press.cuePoint;
+    client.seek(deck, press.cuePoint);
     client.play(deck);
     setCue(deck, true);
-  }, [connect, deck, engine, exitLoopIfActive, setCue]);
+  }, [
+    connect,
+    deck,
+    engine,
+    exitLoopIfActive,
+    readEngine,
+    setCue,
+    setCuePoint,
+    setPlaying,
+    state.cuePoint,
+    state.track,
+  ]);
 
   const handleCueUp = useCallback(() => {
-    if (!engine) return;
+    const cuePoint = cuePreviewRef.current;
+    if (!engine || cuePoint === null) return;
+    cuePreviewRef.current = null;
     exitLoopIfActive(engine);
     engine.pause(deck);
-    engine.seek(deck, 0);
+    engine.seek(deck, cuePoint);
     setCue(deck, false);
   }, [deck, engine, exitLoopIfActive, setCue]);
 
@@ -147,6 +202,38 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
     [deck, engine, setPitch],
   );
 
+  const deleteHotCue = useCallback(
+    (index: number) => {
+      clearHotCue(deck, index);
+      if (state.track) {
+        const cues = state.hotCues.filter((c) => c.index !== index);
+        void db.tracks.update(state.track.id, { cues, updatedAt: Date.now() });
+      }
+    },
+    [clearHotCue, deck, state.hotCues, state.track],
+  );
+
+  // Long-press (touch) deletes a set hot cue — the touch stand-in for
+  // Traktor's Shift+pad. The click that ends a long-press is swallowed so it
+  // doesn't immediately set the pad again.
+  const startLongPress = useCallback(
+    (index: number) => {
+      if (!state.hotCues.some((c) => c.index === index)) return;
+      const press = { fired: false, timer: setTimeout(() => undefined, 0) };
+      press.timer = setTimeout(() => {
+        press.fired = true;
+        deleteHotCue(index);
+        navigator.vibrate?.(15);
+      }, 550);
+      longPressRef.current = press;
+    },
+    [deleteHotCue, state.hotCues],
+  );
+
+  const cancelLongPress = useCallback(() => {
+    if (longPressRef.current) clearTimeout(longPressRef.current.timer);
+  }, []);
+
   const handleHotCue = useCallback(
     async (index: number) => {
       const existing = state.hotCues.find((c) => c.index === index);
@@ -170,6 +257,28 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
     [connect, deck, engine, exitLoopIfActive, setHotCue, setPlaying, state.hotCues, state.track],
   );
 
+  const trackFrames = state.track
+    ? state.track.durationSeconds * (engine?.sampleRate ?? 48000)
+    : 0;
+  const waveformMarkers: WaveformMarker[] =
+    trackFrames > 0
+      ? [
+          { position: state.cuePoint / trackFrames, color: "#e8e6e1", label: "C" },
+          ...state.hotCues.map((c) => ({
+            position: c.frame / trackFrames,
+            color: c.color,
+            label: String(c.index + 1),
+          })),
+        ]
+      : [];
+
+  const handleSeek = async (position: number) => {
+    if (!state.track || trackFrames <= 0) return;
+    const client = engine ?? (await connect());
+    exitLoopIfActive(client);
+    client.seek(deck, position * trackFrames);
+  };
+
   return (
     <div className="panel-surface flex flex-col gap-3 rounded-xl border border-deck-border p-4 shadow-panel landscape:gap-2 landscape:p-2 lg:gap-3 lg:p-4">
       <div className="flex items-center justify-between">
@@ -183,7 +292,12 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
 
       <TimeDisplay deck={deck} />
 
-      <Waveform deck={deck} peaks={state.track?.waveform ?? null} />
+      <Waveform
+        deck={deck}
+        peaks={state.track?.waveform ?? null}
+        markers={waveformMarkers}
+        onSeek={(position) => void handleSeek(position)}
+      />
 
       <div className="flex items-center justify-center py-1">
         <JogWheel deck={deck} />
@@ -204,8 +318,24 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
                   "h-11 rounded-sm border text-xs font-bold uppercase",
                   cue ? "border-transparent text-black" : "border-deck-border text-neutral-500",
                 )}
-                style={cue ? { backgroundColor: cue.color } : undefined}
-                onClick={() => void handleHotCue(index)}
+                style={cue ? { backgroundColor: cue.color, WebkitTouchCallout: "none" } : undefined}
+                onPointerDown={() => startLongPress(index)}
+                onPointerUp={cancelLongPress}
+                onPointerLeave={cancelLongPress}
+                onClick={() => {
+                  if (longPressRef.current?.fired) {
+                    longPressRef.current = null;
+                    return;
+                  }
+                  void handleHotCue(index);
+                }}
+                onContextMenu={(e) => {
+                  // Right-click (desktop) deletes; also stops the phone's
+                  // long-press menu from covering the pads.
+                  e.preventDefault();
+                  if (cue) deleteHotCue(index);
+                }}
+                title={cue ? "Tap to jump · long-press or right-click to delete" : "Tap to set a hot cue here"}
               >
                 {index + 1}
               </button>

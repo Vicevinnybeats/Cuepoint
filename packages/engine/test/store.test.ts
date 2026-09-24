@@ -74,4 +74,14 @@ describe("decksStore", () => {
     expect(mixer.crossfaderPosition).toBe(0.5);
     expect(mixer.crossfaderCurve).toBe("sharp");
   });
+
+  it("sets the main cue point, and restores it with a loaded track", () => {
+    const s = decksStore.getState();
+    s.setCuePoint("A", 48_000);
+    expect(decksStore.getState().decks.A.cuePoint).toBe(48_000);
+    s.loadTrack("B", null, [], 96_000);
+    expect(decksStore.getState().decks.B.cuePoint).toBe(96_000);
+    s.loadTrack("B", null);
+    expect(decksStore.getState().decks.B.cuePoint).toBe(0);
+  });
 });

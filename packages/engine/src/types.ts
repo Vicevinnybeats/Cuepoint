@@ -40,6 +40,8 @@ export interface DeckUiState {
   playRequested: boolean;
   syncEnabled: boolean;
   loopLengthBeats: number | null;
+  /** Main cue point, in frames. 0 (track start) until one is set. */
+  cuePoint: number;
 }
 
 export interface MixerUiState {

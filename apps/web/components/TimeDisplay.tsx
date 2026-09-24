@@ -5,9 +5,7 @@ import { useStore } from "zustand/react";
 import { decksStore } from "@cuepoint/engine";
 import type { DeckId } from "@cuepoint/engine";
 import { useDeckFrame } from "@/hooks/useDeckFrame";
-
-/** See JogWheel.tsx: the shared-state protocol doesn't carry sample rate. */
-const ASSUMED_SAMPLE_RATE = 48000;
+import { useEngine } from "@/lib/engine-provider";
 
 function formatTime(totalSeconds: number): string {
   const clamped = Number.isFinite(totalSeconds) && totalSeconds > 0 ? totalSeconds : 0;
@@ -21,10 +19,12 @@ export function TimeDisplay({ deck }: { deck: DeckId }) {
   const remainingRef = useRef<HTMLSpanElement | null>(null);
   const bpmRef = useRef<HTMLSpanElement | null>(null);
   const track = useStore(decksStore, (s) => s.decks[deck].track);
+  const { engine } = useEngine();
 
   useDeckFrame(deck, (snapshot) => {
-    const elapsed = snapshot.playheadFrames / ASSUMED_SAMPLE_RATE;
-    const total = snapshot.trackFrames / ASSUMED_SAMPLE_RATE;
+    const sampleRate = engine?.sampleRate ?? 48000;
+    const elapsed = snapshot.playheadFrames / sampleRate;
+    const total = snapshot.trackFrames / sampleRate;
     if (elapsedRef.current) elapsedRef.current.textContent = formatTime(elapsed);
     if (remainingRef.current) {
       remainingRef.current.textContent = `-${formatTime(Math.max(total - elapsed, 0))}`;

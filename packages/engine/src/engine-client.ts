@@ -92,6 +92,13 @@ export class EngineClient {
 
   /** Whether playhead/meter state travels through SharedArrayBuffer (true)
    * or the MessagePort fallback (false, a frame or so behind). */
+  /** The AudioContext's actual rate. decodeAudioData resamples every track
+   * to it, so playhead/loop frames convert to seconds with this — not an
+   * assumed 48 kHz (many phones run at 44.1 kHz). */
+  get sampleRate(): number {
+    return this.ctx.sampleRate;
+  }
+
   get crossOriginIsolated(): boolean {
     return typeof globalThis.crossOriginIsolated === "boolean" && globalThis.crossOriginIsolated;
   }

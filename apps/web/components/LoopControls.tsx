@@ -9,8 +9,6 @@ import { useEngine } from "@/lib/engine-provider";
 import { cx } from "@/lib/cx";
 
 const LOOP_BEATS = [1, 2, 4, 8, 16];
-/** See JogWheel.tsx: the shared-state protocol doesn't carry sample rate. */
-const ASSUMED_SAMPLE_RATE = 48000;
 
 export function LoopControls({ deck }: { deck: DeckId }) {
   const { engine, connect } = useEngine();
@@ -31,7 +29,9 @@ export function LoopControls({ deck }: { deck: DeckId }) {
       const effectiveBpm = state.track.bpm * (1 + state.pitchPercent / 100);
       const snapshot = emptySnapshot();
       client.reader(deck).read(snapshot);
-      const framesPerBeat = (60 / effectiveBpm) * ASSUMED_SAMPLE_RATE;
+      // The context's real rate: assuming 48 kHz made every loop ~9% long on
+      // a 44.1 kHz device, drifting off the beat.
+      const framesPerBeat = (60 / effectiveBpm) * client.sampleRate;
       const start = snapshot.playheadFrames;
       client.setLoop(deck, start, start + framesPerBeat * beats);
       setLoopLength(deck, beats);

@@ -21,6 +21,9 @@ export interface StoredTrack {
   waveform: Float32Array;
   audio: Blob;
   cues: StoredHotCue[];
+  /** Main CUE point in frames. Optional: tracks saved before it existed
+   * don't have one, and read as 0 (track start). */
+  mainCue?: number;
   addedAt: number;
   /** Bumped on every change; the sync worker uses this for last-write-wins. */
   updatedAt: number;

@@ -89,6 +89,7 @@ function trackMetadata(track: StoredTrack): TrackMetadata {
     key: track.key,
     durationSeconds: track.durationSeconds,
     cues: track.cues,
+    mainCue: track.mainCue ?? 0,
     addedAt: track.addedAt,
     updatedAt: track.updatedAt,
   };
@@ -187,6 +188,7 @@ async function applyTrack(item: PulledItem): Promise<void> {
     key: remote.key,
     durationSeconds: remote.durationSeconds,
     cues: remote.cues,
+    mainCue: remote.mainCue ?? 0,
     updatedAt: remote.updatedAt,
   });
 }

@@ -66,6 +66,7 @@ export function LibraryPanel() {
           waveform: track.waveform,
         },
         track.cues,
+        track.mainCue ?? 0,
       );
     },
     [connect, engine, loadTrack],

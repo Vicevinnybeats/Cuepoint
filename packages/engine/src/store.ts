@@ -16,6 +16,7 @@ function defaultDeck(): DeckUiState {
     playRequested: false,
     syncEnabled: false,
     loopLengthBeats: null,
+    cuePoint: 0,
   };
 }
 
@@ -32,7 +33,8 @@ export interface DecksStore {
   togglePlay(deck: DeckId): void;
   setPlaying(deck: DeckId, playing: boolean): void;
   toggleSync(deck: DeckId): void;
-  loadTrack(deck: DeckId, track: DeckUiState["track"], hotCues?: HotCue[]): void;
+  loadTrack(deck: DeckId, track: DeckUiState["track"], hotCues?: HotCue[], cuePoint?: number): void;
+  setCuePoint(deck: DeckId, frame: number): void;
   setHotCue(deck: DeckId, cue: HotCue): void;
   clearHotCue(deck: DeckId, index: number): void;
   setLoopLength(deck: DeckId, beats: number | null): void;
@@ -76,9 +78,9 @@ export const decksStore = createStore<DecksStore>((set) => ({
         [deck]: { ...s.decks[deck], syncEnabled: !s.decks[deck].syncEnabled },
       },
     })),
-  loadTrack: (deck, track, hotCues = []) =>
+  loadTrack: (deck, track, hotCues = [], cuePoint = 0) =>
     set((s) => ({
-      decks: { ...s.decks, [deck]: { ...defaultDeck(), track, hotCues } },
+      decks: { ...s.decks, [deck]: { ...defaultDeck(), track, hotCues, cuePoint } },
     })),
   setHotCue: (deck, cue) =>
     set((s) => {
@@ -100,6 +102,8 @@ export const decksStore = createStore<DecksStore>((set) => ({
         },
       },
     })),
+  setCuePoint: (deck, frame) =>
+    set((s) => ({ decks: { ...s.decks, [deck]: { ...s.decks[deck], cuePoint: frame } } })),
   setLoopLength: (deck, beats) =>
     set((s) => ({ decks: { ...s.decks, [deck]: { ...s.decks[deck], loopLengthBeats: beats } } })),
 
