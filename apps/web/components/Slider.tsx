@@ -9,9 +9,21 @@ interface SliderProps {
   bipolar?: boolean;
   height?: number;
   label?: string;
+  /** Value a double-click resets to. Defaults to the slider's own centre
+   * (0 bipolar, 0.5 unipolar) — override when the caller's value mapping
+   * puts "neutral" (e.g. a channel fader's unity/full-up position)
+   * somewhere else on the 0..1/-1..1 range. */
+  resetValue?: number;
 }
 
-export function Slider({ value, onChange, bipolar = false, height = 160, label }: SliderProps) {
+export function Slider({
+  value,
+  onChange,
+  bipolar = false,
+  height = 160,
+  label,
+  resetValue,
+}: SliderProps) {
   const trackRef = useRef<HTMLDivElement | null>(null);
 
   const setFromClientY = useCallback(
@@ -41,6 +53,10 @@ export function Slider({ value, onChange, bipolar = false, height = 160, label }
     [setFromClientY],
   );
 
+  const handleDoubleClick = useCallback(() => {
+    onChange(resetValue ?? (bipolar ? 0 : 0.5));
+  }, [bipolar, onChange, resetValue]);
+
   const t = bipolar ? (value + 1) / 2 : value;
   const thumbTopPercent = (1 - t) * 100;
 
@@ -52,6 +68,7 @@ export function Slider({ value, onChange, bipolar = false, height = 160, label }
         style={{ height }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
+        onDoubleClick={handleDoubleClick}
         role="slider"
         aria-label={label}
         aria-valuemin={bipolar ? -1 : 0}

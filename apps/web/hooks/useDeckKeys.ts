@@ -11,15 +11,20 @@ export interface DeckKeyHandlers {
   hotCue(index: number): void;
 }
 
-/** Left hand drives deck A, right hand deck B — the usual laptop-DJ split. */
+/** Left hand drives decks A/C, right hand decks B/D — the usual laptop-DJ
+ * split, doubled up for the 4-channel mixer. */
 const KEYMAP: Record<DeckId, { cue: string; play: string; sync: string; hotCues: string[] }> = {
   A: { cue: "q", play: "w", sync: "s", hotCues: ["1", "2", "3", "4"] },
   B: { cue: "o", play: "p", sync: "l", hotCues: ["7", "8", "9", "0"] },
+  C: { cue: "e", play: "d", sync: "f", hotCues: ["z", "x", "c", "v"] },
+  D: { cue: "i", play: "k", sync: "j", hotCues: ["n", "m", ",", "."] },
 };
 
 export const DECK_KEY_HINTS: Record<DeckId, string> = {
   A: "Keys: Q cue · W play · S sync · 1–4 hot cues",
   B: "Keys: O cue · P play · L sync · 7–0 hot cues",
+  C: "Keys: E cue · D play · F sync · Z–V hot cues",
+  D: "Keys: I cue · K play · J sync · N–. hot cues",
 };
 
 function isTyping(target: EventTarget | null): boolean {

@@ -1,6 +1,10 @@
-import type { CrossfaderCurve } from "@cuepoint/dsp/kernels";
+import type { CrossfaderCurve, CrossfaderAssign } from "@cuepoint/dsp/kernels";
 
-export type DeckId = "A" | "B";
+export type DeckId = "A" | "B" | "C" | "D";
+
+/** Deck order everywhere it matters: worklet input index (crossfader
+ * channel N = DECK_IDS[N]), UI layout, keyboard shortcuts. */
+export const DECK_IDS: readonly DeckId[] = ["A", "B", "C", "D"];
 
 export interface TrackMeta {
   id: string;
@@ -35,7 +39,7 @@ export interface DeckUiState {
   filter: number;
   faderLevel: number;
   cueActive: boolean;
-  pitchPercent: number;
+  tempoPercent: number;
   /** Commanded, not observed — the engine confirms via the snapshot loop. */
   playRequested: boolean;
   syncEnabled: boolean;
@@ -48,4 +52,14 @@ export interface MixerUiState {
   crossfaderPosition: number;
   crossfaderCurve: CrossfaderCurve;
   masterGain: number;
+  /** Crossfader assign switch per deck (see CrossfaderAssign) — defaults to
+   * the traditional two-deck split, A/B on the fader, C/D thru. */
+  crossfaderAssign: Record<DeckId, CrossfaderAssign>;
 }
+
+export const DEFAULT_CROSSFADER_ASSIGN: Record<DeckId, CrossfaderAssign> = {
+  A: "A",
+  B: "B",
+  C: "thru",
+  D: "thru",
+};

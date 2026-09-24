@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useStore } from "zustand/react";
-import { decksStore, syncRate, clampPitchPercent, rateToPitchPercent, pressCue } from "@cuepoint/engine";
+import { decksStore, syncRate, clampTempoPercent, ratioToTempoPercent, pressCue } from "@cuepoint/engine";
 import type { DeckId } from "@cuepoint/engine";
 import { emptySnapshot } from "@cuepoint/dsp";
 import { db } from "@cuepoint/library";
@@ -23,7 +23,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
   const otherDeck: DeckId = deck === "A" ? "B" : "A";
   const { engine, connect, analyzeTrack } = useEngine();
   const state = useStore(decksStore, (s) => s.decks[deck]);
-  const setPitch = useStore(decksStore, (s) => s.setPitch);
+  const setTempo = useStore(decksStore, (s) => s.setTempo);
   const toggleSync = useStore(decksStore, (s) => s.toggleSync);
   const setCue = useStore(decksStore, (s) => s.setCue);
   const loadTrack = useStore(decksStore, (s) => s.loadTrack);
@@ -184,23 +184,25 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
     const other = decksStore.getState().decks[otherDeck];
     if (!other.track || !state.track) return; // nothing loaded to sync to
 
-    const ownRate = 1 + state.pitchPercent / 100;
-    const targetBpm = other.track.bpm * (1 + other.pitchPercent / 100);
+    const ownRate = 1 + state.tempoPercent / 100;
+    const targetBpm = other.track.bpm * (1 + other.tempoPercent / 100);
     const rate = syncRate(targetBpm, state.track.bpm, ownRate);
-    const percent = clampPitchPercent(rateToPitchPercent(rate));
+    const percent = clampTempoPercent(ratioToTempoPercent(rate));
 
-    setPitch(deck, percent);
+    setTempo(deck, percent);
     const client = engine ?? (await connect());
     client.setRate(deck, 1 + percent / 100);
-  }, [connect, deck, engine, otherDeck, setPitch, state, toggleSync]);
+  }, [connect, deck, engine, otherDeck, setTempo, state, toggleSync]);
 
-  const handlePitch = useCallback(
+  // A BPM control, not a pitch control: it retimes the deck (see
+  // TimeStretcher / DeckMessage's "rate") without shifting pitch.
+  const handleTempo = useCallback(
     (v: number) => {
       const percent = v * 8; // +-8% range, the mixer-standard default
-      setPitch(deck, percent);
+      setTempo(deck, percent);
       engine?.setRate(deck, 1 + percent / 100);
     },
-    [deck, engine, setPitch],
+    [deck, engine, setTempo],
   );
 
   const deleteHotCue = useCallback(
@@ -409,7 +411,13 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
           className="hidden"
           onChange={(e) => void handleFile(e)}
         />
-        <Slider value={state.pitchPercent / 8} onChange={handlePitch} bipolar height={90} label="Pitch" />
+        <Slider
+          value={state.tempoPercent / 8}
+          onChange={handleTempo}
+          bipolar
+          height={90}
+          label={state.track ? `${(state.track.bpm * (1 + state.tempoPercent / 100)).toFixed(1)} BPM` : "BPM"}
+        />
       </div>
     </div>
   );

@@ -11,6 +11,10 @@ interface KnobProps {
   label?: string;
   /** Tailwind text-color class; the indicator line uses currentColor. */
   accent?: string;
+  /** Value a double-click resets to. Defaults to the knob's own centre
+   * (0 bipolar, 0.5 unipolar) — override when the caller's value mapping
+   * puts "neutral" (e.g. unity gain) somewhere else on the 0..1/-1..1 range. */
+  resetValue?: number;
 }
 
 /** Vertical pixels of drag to sweep the knob's full range — a mouse/touch
@@ -24,6 +28,7 @@ export function Knob({
   size = 44,
   label,
   accent = "text-amber",
+  resetValue,
 }: KnobProps) {
   const dragStart = useRef<{ y: number; value: number } | null>(null);
 
@@ -53,8 +58,8 @@ export function Knob({
   }, []);
 
   const handleDoubleClick = useCallback(() => {
-    onChange(bipolar ? 0 : 0.5);
-  }, [bipolar, onChange]);
+    onChange(resetValue ?? (bipolar ? 0 : 0.5));
+  }, [bipolar, onChange, resetValue]);
 
   // Hardware knobs sweep about 270 degrees, centred at 12 o'clock.
   const t = bipolar ? (value + 1) / 2 : value;

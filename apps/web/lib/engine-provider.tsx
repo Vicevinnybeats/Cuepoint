@@ -6,6 +6,7 @@ import type { DecksStore } from "@cuepoint/engine";
 import { emptySnapshot } from "@cuepoint/dsp";
 import type { DeckSnapshot } from "@cuepoint/dsp";
 import type { DeckId } from "@cuepoint/engine";
+import { DECK_IDS } from "@cuepoint/engine";
 import type { AnalyzeRequest, AnalyzeResult } from "@cuepoint/analysis";
 
 type Target = DeckId | "master";
@@ -40,13 +41,13 @@ const WAVEFORM_COLUMNS = 300;
  * by a sync pull) would otherwise be shown in the UI and ignored by audio.
  */
 function applyStoreToEngine(client: EngineClient, state: DecksStore): void {
-  for (const deck of ["A", "B"] as const) {
+  for (const deck of DECK_IDS) {
     const d = state.decks[deck];
     client.setEq(deck, d.eqLow, d.eqMid, d.eqHigh);
     client.setFilter(deck, d.filter);
     client.setGain(deck, d.gain);
     client.setFader(deck, d.faderLevel);
-    client.setRate(deck, 1 + d.pitchPercent / 100);
+    client.setRate(deck, 1 + d.tempoPercent / 100);
   }
   applyMixerToEngine(client, state);
 }
@@ -55,6 +56,9 @@ function applyMixerToEngine(client: EngineClient, state: DecksStore): void {
   client.setCrossfader(state.mixer.crossfaderPosition);
   client.setCrossfaderCurve(state.mixer.crossfaderCurve);
   client.setMasterGain(state.mixer.masterGain);
+  for (const deck of DECK_IDS) {
+    client.setCrossfaderAssign(deck, state.mixer.crossfaderAssign[deck]);
+  }
 }
 
 const EngineContext = createContext<EngineContextValue | null>(null);
@@ -67,14 +71,18 @@ export function EngineProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const listenersRef = useRef<Record<Target, Set<FrameListener>>>({
-    A: new Set(),
-    B: new Set(),
+    ...(Object.fromEntries(DECK_IDS.map((id) => [id, new Set<FrameListener>()])) as Record<
+      DeckId,
+      Set<FrameListener>
+    >),
     master: new Set(),
   });
   // One reused snapshot object per target so the rAF loop allocates nothing.
   const snapshotsRef = useRef<Record<Target, DeckSnapshot>>({
-    A: emptySnapshot(),
-    B: emptySnapshot(),
+    ...(Object.fromEntries(DECK_IDS.map((id) => [id, emptySnapshot()])) as Record<
+      DeckId,
+      DeckSnapshot
+    >),
     master: emptySnapshot(),
   });
 
@@ -170,7 +178,7 @@ export function EngineProvider({ children }: { children: React.ReactNode }) {
     const tick = () => {
       const client = engineRef.current;
       if (client) {
-        for (const target of ["A", "B", "master"] as const) {
+        for (const target of [...DECK_IDS, "master"] as const) {
           const listeners = listenersRef.current[target];
           if (listeners.size === 0) continue;
           const snapshot = snapshotsRef.current[target];

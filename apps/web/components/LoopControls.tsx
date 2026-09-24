@@ -26,7 +26,7 @@ export function LoopControls({ deck }: { deck: DeckId }) {
       }
       if (!state.track) return; // nothing loaded to loop
 
-      const effectiveBpm = state.track.bpm * (1 + state.pitchPercent / 100);
+      const effectiveBpm = state.track.bpm * (1 + state.tempoPercent / 100);
       const snapshot = emptySnapshot();
       client.reader(deck).read(snapshot);
       // The context's real rate: assuming 48 kHz made every loop ~9% long on
@@ -36,7 +36,7 @@ export function LoopControls({ deck }: { deck: DeckId }) {
       client.setLoop(deck, start, start + framesPerBeat * beats);
       setLoopLength(deck, beats);
     },
-    [connect, deck, engine, setLoopLength, state.loopLengthBeats, state.pitchPercent, state.track],
+    [connect, deck, engine, setLoopLength, state.loopLengthBeats, state.tempoPercent, state.track],
   );
 
   return (

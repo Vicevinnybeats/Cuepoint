@@ -57,7 +57,12 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
   return (
     <div className="panel-surface flex flex-col items-center gap-3 rounded-xl border border-deck-border p-3 shadow-panel landscape:gap-2 landscape:p-2 lg:gap-3 lg:p-3">
       <span className="text-xs font-bold tracking-widest text-neutral-400">{deck}</span>
-      <Knob value={state.gain / GAIN_RANGE} onChange={handleGain} label="Gain" />
+      <Knob
+        value={state.gain / GAIN_RANGE}
+        onChange={handleGain}
+        label="Gain"
+        resetValue={1 / GAIN_RANGE}
+      />
       <div className="flex flex-col gap-2">
         <Knob value={state.eqHigh} onChange={(v) => handleEq("eqHigh", v)} label="Hi" />
         <Knob value={state.eqMid} onChange={(v) => handleEq("eqMid", v)} label="Mid" />
@@ -66,7 +71,13 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
       <Knob value={state.filter} onChange={handleFilter} bipolar label="Filter" accent="text-accent" />
       <div className="flex items-end gap-2">
         <LevelMeter target={deck} height={140} />
-        <Slider value={state.faderLevel} onChange={handleFader} height={140} label="Level" />
+        <Slider
+          value={state.faderLevel}
+          onChange={handleFader}
+          height={140}
+          label="Level"
+          resetValue={1}
+        />
       </div>
     </div>
   );

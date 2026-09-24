@@ -1,5 +1,7 @@
 import { createStore } from "zustand/vanilla";
+import { DECK_IDS, DEFAULT_CROSSFADER_ASSIGN } from "./types.js";
 import type { DeckId, DeckUiState, MixerUiState, HotCue } from "./types.js";
+import type { CrossfaderAssign } from "@cuepoint/dsp/kernels";
 
 function defaultDeck(): DeckUiState {
   return {
@@ -12,7 +14,7 @@ function defaultDeck(): DeckUiState {
     filter: 0,
     faderLevel: 1,
     cueActive: false,
-    pitchPercent: 0,
+    tempoPercent: 0,
     playRequested: false,
     syncEnabled: false,
     loopLengthBeats: null,
@@ -29,7 +31,7 @@ export interface DecksStore {
   setGain(deck: DeckId, value: number): void;
   setFader(deck: DeckId, value: number): void;
   setCue(deck: DeckId, active: boolean): void;
-  setPitch(deck: DeckId, percent: number): void;
+  setTempo(deck: DeckId, percent: number): void;
   togglePlay(deck: DeckId): void;
   setPlaying(deck: DeckId, playing: boolean): void;
   toggleSync(deck: DeckId): void;
@@ -41,14 +43,20 @@ export interface DecksStore {
 
   setCrossfader(position: number): void;
   setCrossfaderCurve(curve: MixerUiState["crossfaderCurve"]): void;
+  setCrossfaderAssign(deck: DeckId, assign: CrossfaderAssign): void;
   setMasterGain(value: number): void;
 }
 
 /** UI-only state — see DeckUiState. The engine remains the source of truth
  * for playhead position, meters and loop-active status. */
 export const decksStore = createStore<DecksStore>((set) => ({
-  decks: { A: defaultDeck(), B: defaultDeck() },
-  mixer: { crossfaderPosition: 0, crossfaderCurve: "constant-power", masterGain: 1 },
+  decks: Object.fromEntries(DECK_IDS.map((id) => [id, defaultDeck()])) as Record<DeckId, DeckUiState>,
+  mixer: {
+    crossfaderPosition: 0,
+    crossfaderCurve: "constant-power",
+    masterGain: 1,
+    crossfaderAssign: { ...DEFAULT_CROSSFADER_ASSIGN },
+  },
 
   setEq: (deck, band, value) =>
     set((s) => ({ decks: { ...s.decks, [deck]: { ...s.decks[deck], [band]: value } } })),
@@ -60,8 +68,8 @@ export const decksStore = createStore<DecksStore>((set) => ({
     set((s) => ({ decks: { ...s.decks, [deck]: { ...s.decks[deck], faderLevel: value } } })),
   setCue: (deck, active) =>
     set((s) => ({ decks: { ...s.decks, [deck]: { ...s.decks[deck], cueActive: active } } })),
-  setPitch: (deck, percent) =>
-    set((s) => ({ decks: { ...s.decks, [deck]: { ...s.decks[deck], pitchPercent: percent } } })),
+  setTempo: (deck, percent) =>
+    set((s) => ({ decks: { ...s.decks, [deck]: { ...s.decks[deck], tempoPercent: percent } } })),
   togglePlay: (deck) =>
     set((s) => ({
       decks: {
@@ -109,5 +117,9 @@ export const decksStore = createStore<DecksStore>((set) => ({
 
   setCrossfader: (position) => set((s) => ({ mixer: { ...s.mixer, crossfaderPosition: position } })),
   setCrossfaderCurve: (curve) => set((s) => ({ mixer: { ...s.mixer, crossfaderCurve: curve } })),
+  setCrossfaderAssign: (deck, assign) =>
+    set((s) => ({
+      mixer: { ...s.mixer, crossfaderAssign: { ...s.mixer.crossfaderAssign, [deck]: assign } },
+    })),
   setMasterGain: (value) => set((s) => ({ mixer: { ...s.mixer, masterGain: value } })),
 }));

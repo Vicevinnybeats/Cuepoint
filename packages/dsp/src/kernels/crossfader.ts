@@ -46,3 +46,23 @@ export function crossfaderGains(
   }
   return out;
 }
+
+/**
+ * Crossfader assign switch — what a club mixer with more than 2 channels
+ * needs, since one crossfader can only blend two sides. Each channel is
+ * assigned to the A side, the B side, or "thru" (bypasses the crossfader
+ * entirely, always at full gain — the usual choice for a channel you're
+ * mixing purely on its own volume fader).
+ */
+export type CrossfaderAssign = "A" | "thru" | "B";
+
+export function assignedCrossfaderGain(assign: CrossfaderAssign, gains: CrossfaderGains): number {
+  switch (assign) {
+    case "A":
+      return gains.a;
+    case "B":
+      return gains.b;
+    case "thru":
+      return 1;
+  }
+}

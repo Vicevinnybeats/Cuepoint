@@ -108,7 +108,7 @@ export class TrackReader {
    * Read one interpolated sample from `channel` at fractional frame `pos`,
    * wrapping the interpolation neighbourhood through the loop when one is set.
    */
-  private sampleAt(channel: Float32Array, pos: number): number {
+  private interpolateChannel(channel: Float32Array, pos: number): number {
     const i1 = Math.floor(pos);
     const t = pos - i1;
     return catmullRom(
@@ -118,6 +118,26 @@ export class TrackReader {
       channel[this.neighbour(i1 + 2)] ?? 0,
       t,
     );
+  }
+
+  /**
+   * Public, position-independent read: interpolated sample from
+   * `channelIndex` at fractional frame `pos`, without touching the deck's
+   * own playhead. Mono tracks feed every channel index, matching `render`.
+   * Used by TimeStretcher, which tracks its own read cursor per grain
+   * while the playhead advances separately (at the tempo ratio).
+   */
+  sampleAt(channelIndex: number, pos: number): number {
+    const channel = this.channels[channelIndex] ?? this.channels[0];
+    if (!channel) return 0;
+    return this.interpolateChannel(channel, pos);
+  }
+
+  /** Bookkeeping-only playhead advance (loop wrap, end detection) with no
+   * sample read — for callers (TimeStretcher) that read samples through
+   * `sampleAt` at their own cursor instead of through `render`. */
+  advancePlayhead(): void {
+    this.advance();
   }
 
   /** Clamp to the track, or wrap within the loop when one is active. */
@@ -181,8 +201,8 @@ export class TrackReader {
         continue;
       }
       const pos = this.position;
-      outL[i] = this.sampleAt(left, pos);
-      outR[i] = this.sampleAt(right, pos);
+      outL[i] = this.interpolateChannel(left, pos);
+      outR[i] = this.interpolateChannel(right, pos);
       this.advance();
     }
   }

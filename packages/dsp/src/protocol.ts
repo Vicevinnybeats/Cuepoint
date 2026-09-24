@@ -6,7 +6,7 @@
  * holds or a slot in shared memory; these messages are control-rate only.
  */
 
-import type { CrossfaderCurve } from "./kernels/crossfader.js";
+import type { CrossfaderCurve, CrossfaderAssign } from "./kernels/crossfader.js";
 
 export interface LoadTrackMessage {
   type: "load";
@@ -25,7 +25,11 @@ export type DeckMessage =
   | { type: "pause" }
   /** Jump the playhead. `frame` is absolute, fractional allowed. */
   | { type: "seek"; frame: number }
-  /** Playback rate multiplier; 1 is nominal, negative plays backwards. */
+  /** Tempo ratio; 1 is nominal. Drives the playhead (loop wrap, end
+   * detection, effective BPM) — it does not resample audio, so it never
+   * changes pitch. See TimeStretcher, which reads content at local rate 1
+   * and re-syncs to this playhead every half-grain. Negative/scratch rates
+   * are not supported on this path. */
   | { type: "rate"; value: number }
   | { type: "loop"; start: number; end: number }
   | { type: "clearLoop" }
@@ -41,4 +45,8 @@ export type DeckMessage =
 export type MasterMessage =
   | { type: "crossfader"; position: number }
   | { type: "crossfaderCurve"; curve: CrossfaderCurve }
-  | { type: "masterGain"; value: number };
+  | { type: "masterGain"; value: number }
+  /** Which side of the crossfader input `channel` (0-based, in the order
+   * the deck inputs were connected) responds to — or "thru" to bypass the
+   * crossfader entirely, always at full gain. */
+  | { type: "crossfaderAssign"; channel: number; assign: CrossfaderAssign };

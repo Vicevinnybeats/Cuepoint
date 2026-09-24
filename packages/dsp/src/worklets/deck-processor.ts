@@ -19,6 +19,7 @@
  */
 
 import { TrackReader } from "../kernels/resampler.js";
+import { TimeStretcher } from "../kernels/time-stretch.js";
 import { Eq3 } from "../kernels/eq3.js";
 import { WasmDsp } from "../wasm/wasm-dsp.js";
 import { WasmEq3 } from "../wasm/wasm-eq3.js";
@@ -33,6 +34,7 @@ const MAX_QUANTUM = 1024;
 
 class DeckProcessor extends AudioWorkletProcessor {
   private readonly reader = new TrackReader();
+  private readonly stretcher: TimeStretcher;
   private readonly eqL: Eq3 | WasmEq3;
   private readonly eqR: Eq3 | WasmEq3;
   private readonly filterL: FilterKnob;
@@ -77,6 +79,7 @@ class DeckProcessor extends AudioWorkletProcessor {
       this.scratchL = new Float32Array(MAX_QUANTUM);
       this.scratchR = new Float32Array(MAX_QUANTUM);
     }
+    this.stretcher = new TimeStretcher(sampleRate);
     this.filterL = new FilterKnob(sampleRate);
     this.filterR = new FilterKnob(sampleRate);
     this.meterL = new Meter(sampleRate);
@@ -105,6 +108,7 @@ class DeckProcessor extends AudioWorkletProcessor {
       case "load": {
         const channels = message.channels.map((b) => new Float32Array(b));
         this.reader.load(channels);
+        this.stretcher.reset(this.reader);
         this.bpm = message.bpm;
         this.playing = false;
         this.eqL.reset();
@@ -129,15 +133,18 @@ class DeckProcessor extends AudioWorkletProcessor {
         break;
       case "seek":
         this.reader.seek(message.frame);
+        this.stretcher.reset(this.reader);
         break;
       case "rate":
         this.reader.rate = message.value;
         break;
       case "loop":
         this.reader.setLoop(message.start, message.end);
+        this.stretcher.reset(this.reader);
         break;
       case "clearLoop":
         this.reader.clearLoop();
+        this.stretcher.reset(this.reader);
         break;
       case "eq":
         for (const eq of [this.eqL, this.eqR]) {
@@ -172,7 +179,7 @@ class DeckProcessor extends AudioWorkletProcessor {
     const { scratchL, scratchR } = this;
 
     if (this.playing && this.reader.isLoaded) {
-      this.reader.render(scratchL, scratchR, frames);
+      this.stretcher.render(this.reader, scratchL, scratchR, frames);
     } else {
       scratchL.fill(0, 0, frames);
       scratchR.fill(0, 0, frames);

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { decksStore } from "../src/store.js";
+import { DECK_IDS } from "../src/types.js";
 
 describe("decksStore", () => {
   beforeEach(() => {
@@ -83,5 +84,31 @@ describe("decksStore", () => {
     expect(decksStore.getState().decks.B.cuePoint).toBe(96_000);
     s.loadTrack("B", null);
     expect(decksStore.getState().decks.B.cuePoint).toBe(0);
+  });
+
+  it("has all 4 decks, independently addressable", () => {
+    expect(DECK_IDS).toEqual(["A", "B", "C", "D"]);
+    const { decks } = decksStore.getState();
+    for (const id of DECK_IDS) expect(decks[id].eqLow).toBe(0.5);
+    decksStore.getState().setGain("D", 0.3);
+    const after = decksStore.getState().decks;
+    expect(after.D.gain).toBe(0.3);
+    expect(after.A.gain).toBe(1);
+    expect(after.B.gain).toBe(1);
+    expect(after.C.gain).toBe(1);
+  });
+
+  it("defaults the crossfader assign switch to the traditional A/B split, C and D thru", () => {
+    const { crossfaderAssign } = decksStore.getState().mixer;
+    expect(crossfaderAssign).toEqual({ A: "A", B: "B", C: "thru", D: "thru" });
+  });
+
+  it("sets one deck's crossfader assign without touching the others", () => {
+    decksStore.getState().setCrossfaderAssign("C", "A");
+    const { crossfaderAssign } = decksStore.getState().mixer;
+    expect(crossfaderAssign.C).toBe("A");
+    expect(crossfaderAssign.A).toBe("A");
+    expect(crossfaderAssign.B).toBe("B");
+    expect(crossfaderAssign.D).toBe("thru");
   });
 });

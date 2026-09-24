@@ -17,7 +17,8 @@ import {
   isStateSnapshot,
 } from "@cuepoint/dsp/shared";
 import type { DeckMessage, MasterMessage } from "@cuepoint/dsp";
-import type { CrossfaderCurve } from "@cuepoint/dsp/kernels";
+import type { CrossfaderCurve, CrossfaderAssign } from "@cuepoint/dsp/kernels";
+import { DECK_IDS } from "./types.js";
 import type { DeckId } from "./types.js";
 
 export interface EngineClientOptions {
@@ -40,54 +41,49 @@ export class EngineClient {
     await ctx.audioWorklet.addModule(options.deckWorkletUrl);
     await ctx.audioWorklet.addModule(options.masterWorkletUrl);
 
-    const bufferA = createSharedStateBuffer();
-    const bufferB = createSharedStateBuffer();
-    const bufferMaster = createSharedStateBuffer();
-
-    const deckA = new AudioWorkletNode(ctx, "deck-processor", {
-      numberOfInputs: 0,
-      numberOfOutputs: 1,
-      outputChannelCount: [2],
-      processorOptions: { sharedState: bufferA },
-    });
-    const deckB = new AudioWorkletNode(ctx, "deck-processor", {
-      numberOfInputs: 0,
-      numberOfOutputs: 1,
-      outputChannelCount: [2],
-      processorOptions: { sharedState: bufferB },
-    });
+    const masterBuffer = createSharedStateBuffer();
     const master = new AudioWorkletNode(ctx, "master-processor", {
-      numberOfInputs: 2,
+      numberOfInputs: DECK_IDS.length,
       numberOfOutputs: 1,
       outputChannelCount: [2],
-      processorOptions: { sharedState: bufferMaster },
+      processorOptions: { sharedState: masterBuffer },
     });
 
-    // Without cross-origin isolation the buffers above are plain
+    // Without cross-origin isolation the buffers below are plain
     // ArrayBuffers: each worklet writes into its own copy, and posts that
     // copy back over its port instead (see SnapshotPoster). Mirror it here
     // so the readers — and everything drawing from them — work unchanged.
-    const pairs: Array<[AudioWorkletNode, SharedArrayBuffer | ArrayBuffer]> = [
-      [deckA, bufferA],
-      [deckB, bufferB],
-      [master, bufferMaster],
-    ];
-    for (const [node, buffer] of pairs) {
-      if (isSharedBuffer(buffer)) continue;
+    const mirror = (node: AudioWorkletNode, buffer: SharedArrayBuffer | ArrayBuffer): void => {
+      if (isSharedBuffer(buffer)) return;
       node.port.onmessage = (event: MessageEvent<unknown>) => {
         if (isStateSnapshot(event.data)) applySnapshot(buffer, event.data.bytes);
       };
-    }
+    };
+    mirror(master, masterBuffer);
 
-    deckA.connect(master, 0, 0);
-    deckB.connect(master, 0, 1);
+    const deckNodes = {} as Record<DeckId, AudioWorkletNode>;
+    const readers = { master: new SharedStateReader(masterBuffer) } as Record<
+      DeckId | "master",
+      SharedStateReader
+    >;
+
+    DECK_IDS.forEach((id, inputIndex) => {
+      const buffer = createSharedStateBuffer();
+      const node = new AudioWorkletNode(ctx, "deck-processor", {
+        numberOfInputs: 0,
+        numberOfOutputs: 1,
+        outputChannelCount: [2],
+        processorOptions: { sharedState: buffer },
+      });
+      mirror(node, buffer);
+      node.connect(master, 0, inputIndex);
+      deckNodes[id] = node;
+      readers[id] = new SharedStateReader(buffer);
+    });
+
     master.connect(ctx.destination);
 
-    return new EngineClient(ctx, { A: deckA, B: deckB }, master, {
-      A: new SharedStateReader(bufferA),
-      B: new SharedStateReader(bufferB),
-      master: new SharedStateReader(bufferMaster),
-    });
+    return new EngineClient(ctx, deckNodes, master, readers);
   }
 
   /** Whether playhead/meter state travels through SharedArrayBuffer (true)
@@ -189,13 +185,17 @@ export class EngineClient {
   setCrossfaderCurve(curve: CrossfaderCurve): void {
     this.sendMaster({ type: "crossfaderCurve", curve });
   }
+  /** Which crossfader side (or "thru" to bypass it) `deck` responds to —
+   * the assign switch a mixer with more than 2 channels needs. */
+  setCrossfaderAssign(deck: DeckId, assign: CrossfaderAssign): void {
+    this.sendMaster({ type: "crossfaderAssign", channel: DECK_IDS.indexOf(deck), assign });
+  }
   setMasterGain(value: number): void {
     this.sendMaster({ type: "masterGain", value });
   }
 
   async dispose(): Promise<void> {
-    this.deckNodes.A.disconnect();
-    this.deckNodes.B.disconnect();
+    for (const node of Object.values(this.deckNodes)) node.disconnect();
     this.masterNode.disconnect();
     await this.ctx.close();
   }

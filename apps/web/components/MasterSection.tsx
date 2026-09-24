@@ -33,6 +33,7 @@ export function MasterSection() {
         onChange={handleMasterGain}
         label="Master"
         accent="text-accent"
+        resetValue={1 / MASTER_GAIN_RANGE}
       />
     </div>
   );

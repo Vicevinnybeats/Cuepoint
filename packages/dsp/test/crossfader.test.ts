@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { crossfaderGains } from "../src/kernels/crossfader.js";
+import { crossfaderGains, assignedCrossfaderGain } from "../src/kernels/crossfader.js";
 import type { CrossfaderCurve, CrossfaderGains } from "../src/kernels/crossfader.js";
 
 const out: CrossfaderGains = { a: 0, b: 0 };
@@ -56,5 +56,25 @@ describe("crossfaderGains", () => {
   it("writes into the supplied object so the audio thread allocates nothing", () => {
     const target: CrossfaderGains = { a: 0, b: 0 };
     expect(crossfaderGains(0.5, "linear", target)).toBe(target);
+  });
+});
+
+describe("assignedCrossfaderGain", () => {
+  it("thru always reads full gain, regardless of crossfader position", () => {
+    for (const position of [-1, -0.3, 0, 0.4, 1]) {
+      const gains = crossfaderGains(position, "constant-power", out);
+      expect(assignedCrossfaderGain("thru", gains)).toBe(1);
+    }
+  });
+
+  it("A and B follow the crossfader's own gains", () => {
+    const gains = crossfaderGains(-0.5, "linear", out);
+    expect(assignedCrossfaderGain("A", gains)).toBe(gains.a);
+    expect(assignedCrossfaderGain("B", gains)).toBe(gains.b);
+  });
+
+  it("a channel assigned to the dead side of a hard crossfader is silent", () => {
+    const hardLeft = crossfaderGains(-1, "sharp", out);
+    expect(assignedCrossfaderGain("B", hardLeft)).toBeCloseTo(0, 6);
   });
 });

@@ -115,4 +115,47 @@ describe("master-processor", () => {
     const { left } = runQuanta(master, 50, [[loud, loud], [loud, loud]]);
     expect(peakOf(left)).toBeLessThanOrEqual(0.99 + 1e-6);
   });
+
+  it("channels C and D default to thru — audible regardless of crossfader position", () => {
+    const master = new (registered.get("master-processor")!)({ processorOptions: {} });
+    send(master, { type: "crossfader", position: -1 }); // hard left: would silence a B-side channel
+    const silent = new Float32Array(QUANTUM);
+    const c = new Float32Array(QUANTUM).fill(0.2);
+    let last = runQuanta(master, 1, [[silent, silent], [silent, silent], [c, c]]);
+    for (let i = 0; i < 40; i++) {
+      last = runQuanta(master, 1, [[silent, silent], [silent, silent], [c, c]]);
+    }
+    expect(last.left[QUANTUM - 1]).toBeCloseTo(0.2, 3);
+  });
+
+  it("reassigning a channel to a crossfader side takes effect", () => {
+    const master = new (registered.get("master-processor")!)({ processorOptions: {} });
+    send(master, { type: "crossfader", position: 1 }); // hard right
+    const c = new Float32Array(QUANTUM).fill(0.3);
+    const silence = new Float32Array(QUANTUM);
+    const settle = () => {
+      let last = runQuanta(master, 1, [[silence, silence], [silence, silence], [c, c]]);
+      for (let i = 0; i < 40; i++) {
+        last = runQuanta(master, 1, [[silence, silence], [silence, silence], [c, c]]);
+      }
+      return last;
+    };
+
+    expect(settle().left[QUANTUM - 1]).toBeCloseTo(0.3, 3); // thru: unaffected
+
+    send(master, { type: "crossfaderAssign", channel: 2, assign: "A" });
+    expect(settle().left[QUANTUM - 1]).toBeCloseTo(0, 3); // A-side, but fader is hard right
+  });
+
+  it("sums all four channels", () => {
+    const master = new (registered.get("master-processor")!)({ processorOptions: {} });
+    const each = new Float32Array(QUANTUM).fill(0.1);
+    const { left } = runQuanta(master, 1, [
+      [each, each],
+      [each, each],
+      [each, each],
+      [each, each],
+    ]);
+    expect(left[0]).toBeCloseTo(0.4, 3);
+  });
 });
