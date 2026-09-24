@@ -3,6 +3,7 @@ import "./globals.css";
 import { RegisterServiceWorker } from "./register-sw";
 import { IntroSplash } from "./intro-splash";
 import { RotatePrompt } from "@/components/RotatePrompt";
+import { OnboardingTour } from "@/components/OnboardingTour";
 
 export const metadata: Metadata = {
   title: "Cuepoint",
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <RegisterServiceWorker />
         <IntroSplash />
         <RotatePrompt />
+        <OnboardingTour />
         {children}
       </body>
     </html>
