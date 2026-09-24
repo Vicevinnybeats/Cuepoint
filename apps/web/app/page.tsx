@@ -16,15 +16,19 @@ export default function Page() {
           </span>
         </header>
 
-        {/* Mobile: everything stacks top to bottom in one column (deck A,
-            its channel strip, master, deck B's channel strip, deck B) — a
-            three-wide mixer row does not fit a phone screen. Desktop puts
-            the channel strips in a vertical column sandwiched between the
-            two decks, matching a real mixer's layout. */}
-        <div className="flex flex-col gap-3 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-start">
+        {/* Portrait phone: everything stacks top to bottom in one column
+            (deck A, its channel strip, master, deck B's channel strip,
+            deck B) — a three-wide mixer row does not fit a narrow screen.
+            Landscape phone and desktop both get the hardware layout: deck |
+            channel A / master / channel B | deck, side by side, matching a
+            real 2-channel mixer (and the Kontrol S2 iPad layout this app
+            takes its look from). `landscape:` triggers on viewport aspect
+            ratio, independent of `lg:`'s width breakpoint, so a phone
+            rotated sideways gets this even though it's narrower than lg. */}
+        <div className="flex flex-col gap-3 landscape:grid landscape:grid-cols-[1fr_auto_1fr] landscape:items-start landscape:gap-2 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:items-start lg:gap-3">
           <DeckPanel deck="A" />
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 landscape:gap-2 lg:gap-3">
             <MixerChannel deck="A" />
             <MasterSection />
             <MixerChannel deck="B" />

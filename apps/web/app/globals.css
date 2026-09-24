@@ -45,3 +45,22 @@ body {
   user-select: none;
   -webkit-user-select: none;
 }
+
+/* Intro splash: the name resolves in from wide-tracked and dim, echoing a
+   needle finding its groove, rather than a plain opacity pop. */
+@keyframes intro-name-in {
+  from {
+    opacity: 0;
+    letter-spacing: 0.9em;
+    text-shadow: none;
+  }
+  to {
+    opacity: 1;
+    letter-spacing: 0.5em;
+    text-shadow: 0 0 16px rgba(255, 176, 32, 0.5);
+  }
+}
+
+.intro-name {
+  animation: intro-name-in 700ms ease-out both;
+}

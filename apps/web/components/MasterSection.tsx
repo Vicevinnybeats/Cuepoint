@@ -52,7 +52,7 @@ export function MasterSection() {
   );
 
   return (
-    <div className="panel-surface flex flex-col items-center gap-4 rounded-xl border border-deck-border p-3 shadow-panel">
+    <div className="panel-surface flex flex-col items-center gap-2 rounded-xl border border-deck-border p-3 shadow-panel landscape:gap-2 landscape:p-2 lg:gap-4 lg:p-3">
       <span className="text-xs font-bold tracking-widest text-neutral-400">MASTER</span>
       <LevelMeter target="master" height={100} />
       <Knob

@@ -171,7 +171,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
   );
 
   return (
-    <div className="panel-surface flex flex-col gap-3 rounded-xl border border-deck-border p-4 shadow-panel">
+    <div className="panel-surface flex flex-col gap-3 rounded-xl border border-deck-border p-4 shadow-panel landscape:gap-2 landscape:p-2 lg:gap-3 lg:p-4">
       <div className="flex items-center justify-between">
         <span className="text-sm font-bold tracking-widest text-neutral-300">DECK {deck}</span>
         <div

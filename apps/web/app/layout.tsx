@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { RegisterServiceWorker } from "./register-sw";
+import { IntroSplash } from "./intro-splash";
 
 export const metadata: Metadata = {
   title: "Cuepoint",
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className="overscroll-none">
         <RegisterServiceWorker />
+        <IntroSplash />
         {children}
       </body>
     </html>

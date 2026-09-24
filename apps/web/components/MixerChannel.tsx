@@ -55,7 +55,7 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
   );
 
   return (
-    <div className="panel-surface flex flex-col items-center gap-3 rounded-xl border border-deck-border p-3 shadow-panel">
+    <div className="panel-surface flex flex-col items-center gap-3 rounded-xl border border-deck-border p-3 shadow-panel landscape:gap-2 landscape:p-2 lg:gap-3 lg:p-3">
       <span className="text-xs font-bold tracking-widest text-neutral-400">{deck}</span>
       <Knob value={state.gain / GAIN_RANGE} onChange={handleGain} label="Gain" />
       <div className="flex flex-col gap-2">
