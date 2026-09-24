@@ -40,17 +40,17 @@ export function LoopControls({ deck }: { deck: DeckId }) {
   );
 
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[9px] font-medium uppercase tracking-wide text-neutral-500">
+    <div className="flex flex-col gap-1 landscape:gap-0.5">
+      <span className="text-[9px] font-medium uppercase tracking-wide text-neutral-500 landscape:hidden">
         Loop (beats)
       </span>
-      <div className="grid grid-cols-5 gap-1.5">
+      <div className="grid grid-cols-5 gap-1.5 landscape:gap-1">
         {LOOP_BEATS.map((beats) => (
           <button
             key={beats}
             type="button"
             className={cx(
-              "h-10 rounded-sm border text-xs font-bold",
+              "h-10 rounded-sm border text-xs font-bold landscape:h-4 landscape:text-[8px] lg:landscape:h-10 lg:landscape:text-xs",
               state.loopLengthBeats === beats
                 ? "border-transparent bg-amber text-black"
                 : "border-deck-border text-neutral-400",

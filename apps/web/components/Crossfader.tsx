@@ -42,7 +42,7 @@ export function Crossfader({ value, onChange }: { value: number; onChange: (v: n
       </div>
       <div
         ref={trackRef}
-        className="control-surface relative h-7 w-full cursor-ew-resize rounded-md border border-deck-border bg-panel-sunken"
+        className="control-surface relative h-7 w-full cursor-ew-resize rounded-md border border-deck-border bg-panel-sunken landscape:h-4 lg:landscape:h-7"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         role="slider"

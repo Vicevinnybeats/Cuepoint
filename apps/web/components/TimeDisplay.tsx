@@ -6,6 +6,7 @@ import { decksStore } from "@cuepoint/engine";
 import type { DeckId } from "@cuepoint/engine";
 import { useDeckFrame } from "@/hooks/useDeckFrame";
 import { useEngine } from "@/lib/engine-provider";
+import { useCompactLayout } from "@/hooks/useCompactLayout";
 
 function formatTime(totalSeconds: number): string {
   const clamped = Number.isFinite(totalSeconds) && totalSeconds > 0 ? totalSeconds : 0;
@@ -15,6 +16,7 @@ function formatTime(totalSeconds: number): string {
 }
 
 export function TimeDisplay({ deck }: { deck: DeckId }) {
+  const compact = useCompactLayout();
   const elapsedRef = useRef<HTMLSpanElement | null>(null);
   const remainingRef = useRef<HTMLSpanElement | null>(null);
   const bpmRef = useRef<HTMLSpanElement | null>(null);
@@ -33,6 +35,26 @@ export function TimeDisplay({ deck }: { deck: DeckId }) {
       bpmRef.current.textContent = snapshot.effectiveBpm > 0 ? snapshot.effectiveBpm.toFixed(1) : "--.-";
     }
   });
+
+  if (compact) {
+    // A landscape phone doesn't have room for both the time/BPM row and the
+    // title/key row plus everything else the deck needs — this keeps the
+    // numbers (the only things that change every frame) and drops the
+    // static text, which is still visible in the Library panel.
+    return (
+      <div className="flex items-baseline justify-between gap-1 rounded-md border border-deck-border bg-panel-sunken px-1.5 py-0.5 font-mono leading-none lg:hidden">
+        <span ref={elapsedRef} className="lcd text-[11px] leading-none">
+          0:00
+        </span>
+        <span className="lcd shrink-0 text-[8px] leading-none">
+          <span ref={bpmRef}>--.-</span> BPM
+        </span>
+        <span ref={remainingRef} className="lcd-dim text-[8px] leading-none">
+          -0:00
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-md border border-deck-border bg-panel-sunken px-3 py-2 font-mono">

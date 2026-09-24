@@ -9,6 +9,7 @@ import { db } from "@cuepoint/library";
 import { useEngine } from "@/lib/engine-provider";
 import { useDeckFrame } from "@/hooks/useDeckFrame";
 import { useDeckKeys, DECK_KEY_HINTS } from "@/hooks/useDeckKeys";
+import { useCompactLayout } from "@/hooks/useCompactLayout";
 import { JogWheel } from "./JogWheel";
 import { Waveform } from "./Waveform";
 import type { WaveformMarker } from "./Waveform";
@@ -24,6 +25,7 @@ const HOT_CUE_COLORS = ["#ff5a3c", "#ffb020", "#35d07f", "#4aa8ff"];
 const SYNC_PARTNER: Record<DeckId, DeckId> = { A: "B", B: "A", C: "D", D: "C" };
 
 export function DeckPanel({ deck }: { deck: DeckId }) {
+  const compact = useCompactLayout();
   const otherDeck: DeckId = SYNC_PARTNER[deck];
   const { engine, connect, analyzeTrack } = useEngine();
   const state = useStore(decksStore, (s) => s.decks[deck]);
@@ -295,9 +297,9 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
   };
 
   return (
-    <div className="panel-surface flex flex-col gap-3 rounded-xl border border-deck-border p-4 shadow-panel landscape:gap-2 landscape:p-2 lg:gap-3 lg:p-4">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-bold tracking-widest text-neutral-300">DECK {deck}</span>
+    <div className="panel-surface flex flex-col gap-3 rounded-xl border border-deck-border p-4 shadow-panel landscape:gap-0.5 landscape:p-0.5 lg:landscape:gap-3 lg:landscape:p-4 lg:gap-3 lg:p-4">
+      <div className="flex items-center justify-between leading-none landscape:leading-none">
+        <span className="text-sm font-bold tracking-widest text-neutral-300 leading-none landscape:text-[9px] lg:landscape:text-sm">DECK {deck}</span>
         <span className="hidden text-[9px] text-neutral-600 lg:inline">{DECK_KEY_HINTS[deck]}</span>
         <div
           ref={playingIndicatorRef}
@@ -313,17 +315,18 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         peaks={state.track?.waveform ?? null}
         markers={waveformMarkers}
         onSeek={(position) => void handleSeek(position)}
+        height={compact ? 12 : 48}
       />
 
-      <div className="flex items-center justify-center py-1">
+      <div className="flex items-center justify-center py-1 landscape:py-0">
         <JogWheel deck={deck} />
       </div>
 
-      <div className="flex flex-col gap-1">
-        <span className="text-[9px] font-medium uppercase tracking-wide text-neutral-500">
+      <div className="flex flex-col gap-1 landscape:gap-0.5">
+        <span className="text-[9px] font-medium uppercase tracking-wide text-neutral-500 landscape:hidden">
           Hot Cues
         </span>
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5 landscape:gap-1">
           {[0, 1, 2, 3].map((index) => {
             const cue = state.hotCues.find((c) => c.index === index);
             return (
@@ -331,7 +334,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
                 key={index}
                 type="button"
                 className={cx(
-                  "h-11 rounded-sm border text-xs font-bold uppercase",
+                  "h-11 rounded-sm border text-xs font-bold uppercase leading-none landscape:h-4 landscape:text-[8px] lg:landscape:h-11 lg:landscape:text-xs",
                   cue ? "border-transparent text-black" : "border-deck-border text-neutral-500",
                 )}
                 style={cue ? { backgroundColor: cue.color, WebkitTouchCallout: "none" } : undefined}
@@ -362,10 +365,10 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
 
       <LoopControls deck={deck} />
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 landscape:gap-0.5">
         <button
           type="button"
-          className="flex-1 rounded-md border border-deck-border bg-panel-raised py-3 text-xs font-bold uppercase text-neutral-200 active:bg-neutral-700"
+          className="flex-1 rounded-md border border-deck-border bg-panel-raised py-3 text-xs font-bold uppercase leading-none text-neutral-200 active:bg-neutral-700 landscape:py-0.5 landscape:text-[8px] lg:landscape:py-3 lg:landscape:text-xs"
           onPointerDown={() => void handleCueDown()}
           onPointerUp={handleCueUp}
           onPointerLeave={handleCueUp}
@@ -375,7 +378,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         <button
           type="button"
           className={cx(
-            "flex-[2] rounded-md py-3 text-xs font-bold uppercase",
+            "flex-[2] rounded-md py-3 text-xs font-bold uppercase leading-none landscape:py-0.5 landscape:text-[8px] lg:landscape:py-3 lg:landscape:text-xs",
             state.playRequested
               ? "bg-accent text-black"
               : "border border-deck-border bg-panel-raised text-neutral-200",
@@ -387,7 +390,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         <button
           type="button"
           className={cx(
-            "flex-1 rounded-md border py-3 text-xs font-bold uppercase",
+            "flex-1 rounded-md border py-3 text-xs font-bold uppercase leading-none landscape:py-0.5 landscape:text-[8px] lg:landscape:py-3 lg:landscape:text-xs",
             state.syncEnabled
               ? "border-transparent bg-green-500 text-black"
               : "border-deck-border bg-panel-raised text-neutral-200",
@@ -399,10 +402,10 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         </button>
       </div>
 
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 landscape:gap-1">
         <button
           type="button"
-          className="rounded-md border border-deck-border bg-panel-raised px-3 py-2 text-[11px] font-semibold uppercase text-neutral-300 disabled:opacity-50"
+          className="rounded-md border border-deck-border bg-panel-raised px-3 py-2 text-[11px] font-semibold uppercase leading-none text-neutral-300 disabled:opacity-50 landscape:px-1 landscape:py-0.5 landscape:text-[7px] lg:landscape:px-3 lg:landscape:py-2 lg:landscape:text-[11px]"
           onClick={() => fileInputRef.current?.click()}
           disabled={loading}
         >
@@ -419,7 +422,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
           value={state.tempoPercent / 8}
           onChange={handleTempo}
           bipolar
-          height={90}
+          height={compact ? 22 : 90}
           label={state.track ? `${(state.track.bpm * (1 + state.tempoPercent / 100)).toFixed(1)} BPM` : "BPM"}
         />
       </div>

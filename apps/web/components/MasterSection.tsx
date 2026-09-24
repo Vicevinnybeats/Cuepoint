@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { useStore } from "zustand/react";
 import { decksStore } from "@cuepoint/engine";
 import { useEngine } from "@/lib/engine-provider";
+import { useCompactLayout } from "@/hooks/useCompactLayout";
 import { Knob } from "./Knob";
 import { LevelMeter } from "./LevelMeter";
 
@@ -11,6 +12,7 @@ import { LevelMeter } from "./LevelMeter";
 const MASTER_GAIN_RANGE = 1.2;
 
 export function MasterSection() {
+  const compact = useCompactLayout();
   const { engine } = useEngine();
   const mixer = useStore(decksStore, (s) => s.mixer);
   const setMasterGain = useStore(decksStore, (s) => s.setMasterGain);
@@ -25,15 +27,18 @@ export function MasterSection() {
   );
 
   return (
-    <div className="panel-surface flex flex-col items-center gap-2 rounded-xl border border-deck-border p-3 shadow-panel landscape:gap-2 landscape:p-2 lg:gap-4 lg:p-3">
-      <span className="text-xs font-bold tracking-widest text-neutral-400">MASTER</span>
-      <LevelMeter target="master" height={100} />
+    <div className="panel-surface flex flex-col items-center gap-2 rounded-xl border border-deck-border p-3 shadow-panel landscape:gap-1 landscape:p-1.5 lg:landscape:gap-4 lg:landscape:p-3 lg:gap-4 lg:p-3">
+      <span className="text-xs font-bold tracking-widest text-neutral-400 landscape:text-[10px] lg:landscape:text-xs">
+        MASTER
+      </span>
+      <LevelMeter target="master" height={compact ? 40 : 100} />
       <Knob
         value={mixer.masterGain / MASTER_GAIN_RANGE}
         onChange={handleMasterGain}
         label="Master"
         accent="text-accent"
         resetValue={1 / MASTER_GAIN_RANGE}
+        size={compact ? 26 : 44}
       />
     </div>
   );
