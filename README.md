@@ -6,9 +6,11 @@ terminology and behaviour — not a toy.
 ## Try it now
 
 **https://cuepoint-green.vercel.app** — deployed from this branch, auto-
-redeploys on every push. Open it on your phone: tap Load Track on a deck to
-pick a local audio file, then Play. iOS Safari and Chrome will offer "Add to
-Home Screen" — that installs it as the PWA.
+redeploys on every push. On your phone, turn it sideways — the 4-deck mixer
+needs the width, and a portrait phone shows a "rotate your phone" prompt
+instead. Tap Load Track on a deck to pick a local audio file, then Play.
+iOS Safari and Chrome will offer "Add to Home Screen" — that installs it as
+the PWA.
 
 (This is a personal Vercel Hobby project, not a production service — expect
 it to move if the branch merges or the project gets renamed.)
@@ -104,35 +106,56 @@ itself has to be deployed with your credentials — see **Manual steps**.
 ## Status
 
 Everything below is built, tested, and live at the URL above except where
-**Manual steps** says otherwise. 158 tests (2 end-to-end tests run only
-against a live Worker).
+**Manual steps** says otherwise. 173 tests passing (2 end-to-end tests skip
+unless run against a live Worker).
 
-- **Audio engine** (`packages/dsp`, 92 tests) — biquad / 3-band EQ with
+- **Audio engine** (`packages/dsp`, 106 tests) — biquad / 3-band EQ with
   kill / bipolar filter / limiter / meters / Catmull-Rom resampler with
   sample-accurate loops, as AudioWorklets. Playhead and meters reach the UI
   through a seqlock over `SharedArrayBuffer`, with a MessagePort fallback
   when the page isn't cross-origin isolated. The EQ runs in **WebAssembly**
   (hand-written WAT, zero-copy, bit-identical to the JS kernel, which stays
   as the fallback). Every kernel is per channel, and the processors
-  themselves are tested in Node with a fake AudioWorklet scope.
+  themselves are tested in Node with a fake AudioWorklet scope. Tempo
+  changes go through `TimeStretcher`, a two-voice granular time-stretcher —
+  the BPM control changes speed without ever shifting pitch.
 - **Analysis** (`packages/analysis`, 20 tests) — BPM, musical key (as a
   Camelot code) and waveform peaks, in a Web Worker.
-- **Deck** — CDJ-style CUE (set / hold-to-preview / return), 4 hot cues
-  (long-press or right-click to delete), 1–16 beat loops, tempo sync,
-  pitch fader, tap-to-seek waveform with cue markers, keyboard control on
-  desktop.
-- **Mixer** — gain, 3-band EQ, filter, channel faders, crossfader with three
-  curves, master gain and limiter, stereo meters.
+- **4 decks** (`packages/engine`, 19 tests) — A/B and C/D each CDJ-style CUE
+  (set / hold-to-preview / return), 4 hot cues (long-press or right-click to
+  delete), 1–16 beat loops (portrait/desktop; dropped on landscape phone for
+  space), tempo sync between A↔B and C↔D, a pitch-independent BPM fader
+  (±16%, double-click to reset), tap-to-seek waveform with cue markers, and
+  keyboard control on desktop (see each deck's on-screen key hints).
+- **4-channel mixer** — gain, 3-band EQ and filter per channel, channel
+  faders with a real 0–10 tick scale, a crossfader with three curves, an
+  A/Thru/B assign switch per channel (since one crossfader can only blend
+  two sides once there are 4 channels), master gain and limiter, stereo
+  meters. Every knob, fader and switch resets to its neutral position on
+  double-click.
 - **Library** (`packages/library`, 15 tests) — IndexedDB. Audio, analysis,
   cue points and hot cues persist across reloads; playlists with reorder.
-- **Sync** (`packages/sync` + `apps/sync-worker`, 15 tests) — see above.
+  A desktop-only **Tracklist** button (header) opens it in a modal instead
+  of it sitting inline.
+- **Sync** (`packages/sync` + `apps/sync-worker`, 13 tests) — see above.
   Verified against the live D1 database and end to end under
   `wrangler dev --local`, including 2,500-record paging.
 - **Install targets** — PWA (network-first page loads, offline assets, real
   PNG icons including the iOS home-screen icon), Electron desktop shell,
-  and CI on every push.
-- **UI** — Kontrol S2-inspired hardware look; portrait phone stacks, landscape
-  phone and desktop put the decks either side of the mixer; launch splash.
+  and CI on every push. The manifest requests `"orientation": "landscape"`
+  so an installed PWA launches sideways on Android; a `RotatePrompt`
+  overlay covers the rest (iOS ignores that manifest field, and any
+  browser tab can just be rotated back).
+- **UI** — Kontrol-inspired hardware look, all 4 decks flanking the mixer in
+  a 2-and-2 split either side of master/crossfader. Every layout (portrait
+  phone, landscape phone, desktop) fits on one screen with no scroll:
+  landscape phone uses hand-tuned compact sizing, and a `FitToViewport`
+  wrapper auto-scales the whole grid to whatever height is actually
+  available on desktop, from a 720p laptop to a 4K monitor — it's also the
+  safety margin that keeps landscape phone fitting even when a real
+  device's browser chrome eats into the viewport differently than a
+  synthetic test does. A 9-step onboarding tour explains the controls on
+  first visit, reopenable from the "?" button.
 
 ## Manual steps
 
