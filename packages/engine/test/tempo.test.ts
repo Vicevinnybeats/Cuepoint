@@ -14,8 +14,8 @@ describe("tempo helpers", () => {
   });
 
   it("clamps to the control's range", () => {
-    expect(clampTempoPercent(50)).toBe(8);
-    expect(clampTempoPercent(-50)).toBe(-8);
+    expect(clampTempoPercent(50)).toBe(16);
+    expect(clampTempoPercent(-50)).toBe(-16);
     expect(clampTempoPercent(3)).toBe(3);
   });
 

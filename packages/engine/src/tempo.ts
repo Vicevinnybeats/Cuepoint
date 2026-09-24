@@ -4,9 +4,10 @@
  * a tempo change here never changes pitch, since it's the playhead's speed,
  * not a resample ratio — see TimeStretcher. */
 
-/** A +-8% tempo range is the DJ-mixer standard; wider ranges exist but this
- * is the default range shown on the UI's BPM control. */
-export const TEMPO_RANGE_PERCENT = 8;
+/** +-16%, a "wide" pitch range on real CDJs/mixers (the standard default is
+ * +-8%, but a BPM control that never touches pitch is worth pushing harder
+ * before a wider range costs anything perceptually). */
+export const TEMPO_RANGE_PERCENT = 16;
 
 export function tempoPercentToRatio(percent: number): number {
   return 1 + percent / 100;

@@ -27,18 +27,18 @@ export function MasterSection() {
   );
 
   return (
-    <div className="panel-surface flex flex-col items-center gap-2 rounded-xl border border-deck-border p-3 shadow-panel landscape:gap-1 landscape:p-1.5 lg:landscape:gap-4 lg:landscape:p-3 lg:gap-4 lg:p-3">
-      <span className="text-xs font-bold tracking-widest text-neutral-400 landscape:text-[10px] lg:landscape:text-xs">
+    <div className="panel-surface flex flex-col items-center gap-2 rounded-xl border border-deck-border p-3 shadow-panel landscape:gap-0.5 landscape:p-1 lg:landscape:gap-4 lg:landscape:p-3 lg:gap-4 lg:p-3">
+      <span className="text-xs font-bold tracking-widest text-neutral-400 landscape:text-[9px] lg:landscape:text-xs">
         MASTER
       </span>
-      <LevelMeter target="master" height={compact ? 40 : 100} />
+      <LevelMeter target="master" height={compact ? 30 : 100} />
       <Knob
         value={mixer.masterGain / MASTER_GAIN_RANGE}
         onChange={handleMasterGain}
         label="Master"
         accent="text-accent"
         resetValue={1 / MASTER_GAIN_RANGE}
-        size={compact ? 26 : 44}
+        size={compact ? 20 : 44}
       />
     </div>
   );

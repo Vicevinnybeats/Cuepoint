@@ -34,6 +34,10 @@ export function Crossfader({ value, onChange }: { value: number; onChange: (v: n
 
   const thumbLeftPercent = ((value + 1) / 2) * 100;
 
+  const handleDoubleClick = useCallback(() => {
+    onChange(0);
+  }, [onChange]);
+
   return (
     <div className="flex w-full flex-col items-center gap-1">
       <div className="flex w-full justify-between px-1 text-[9px] font-bold text-neutral-500">
@@ -42,9 +46,10 @@ export function Crossfader({ value, onChange }: { value: number; onChange: (v: n
       </div>
       <div
         ref={trackRef}
-        className="control-surface relative h-7 w-full cursor-ew-resize rounded-md border border-deck-border bg-panel-sunken landscape:h-4 lg:landscape:h-7"
+        className="control-surface relative h-7 w-full cursor-ew-resize rounded-md border border-deck-border bg-panel-sunken landscape:h-3 lg:landscape:h-7"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
+        onDoubleClick={handleDoubleClick}
         role="slider"
         aria-label="Crossfader"
         aria-valuemin={-1}

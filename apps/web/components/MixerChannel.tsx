@@ -76,11 +76,11 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
 
   const assignIndex = ASSIGNS.findIndex((a) => a.id === assign);
 
-  const knobSize = compact ? 26 : 44;
+  const knobSize = compact ? 20 : 44;
 
   return (
-    <div className="panel-surface flex flex-col items-center gap-3 rounded-xl border border-deck-border p-3 shadow-panel landscape:gap-1 landscape:p-1.5 lg:landscape:gap-3 lg:landscape:p-3 lg:gap-3 lg:p-3">
-      <span className="text-xs font-bold tracking-widest text-neutral-400 landscape:text-[10px] lg:landscape:text-xs">
+    <div className="panel-surface flex flex-col items-center gap-3 rounded-xl border border-deck-border p-3 shadow-panel landscape:gap-0.5 landscape:p-1 lg:landscape:gap-3 lg:landscape:p-3 lg:gap-3 lg:p-3">
+      <span className="text-xs font-bold tracking-widest text-neutral-400 landscape:text-[9px] lg:landscape:text-xs">
         {deck}
       </span>
       <Knob
@@ -90,7 +90,7 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
         resetValue={1 / GAIN_RANGE}
         size={knobSize}
       />
-      <div className="flex flex-col gap-2 landscape:flex-row landscape:gap-1 lg:landscape:flex-col lg:landscape:gap-2">
+      <div className="flex flex-col gap-2 landscape:flex-row landscape:gap-0.5 lg:landscape:flex-col lg:landscape:gap-2">
         <Knob value={state.eqHigh} onChange={(v) => handleEq("eqHigh", v)} label="Hi" size={knobSize} />
         <Knob value={state.eqMid} onChange={(v) => handleEq("eqMid", v)} label="Mid" size={knobSize} />
         <Knob value={state.eqLow} onChange={(v) => handleEq("eqLow", v)} label="Low" size={knobSize} />
@@ -103,12 +103,12 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
         accent="text-accent"
         size={knobSize}
       />
-      <div className="flex items-end gap-2 landscape:gap-1 lg:landscape:gap-2">
-        <LevelMeter target={deck} height={compact ? 60 : 140} />
+      <div className="flex items-end gap-2 landscape:gap-0.5 lg:landscape:gap-2">
+        <LevelMeter target={deck} height={compact ? 46 : 140} />
         <Slider
           value={state.faderLevel}
           onChange={handleFader}
-          height={compact ? 60 : 140}
+          height={compact ? 46 : 140}
           label="Level"
           resetValue={1}
           ticks={10}
@@ -116,15 +116,17 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
       </div>
 
       {/* Hardware-style 3-position switch — a single track with a thumb
-          that snaps to A / Thru / B, rather than 3 separate buttons. */}
+          that snaps to A / Thru / B, rather than 3 separate buttons.
+          Double-click resets it to Thru, the neutral/unassigned position. */}
       <div className="flex flex-col items-center gap-1 landscape:gap-0.5">
         <div
-          className="relative flex h-6 w-24 items-center rounded-full border border-deck-border bg-panel-sunken landscape:h-4 landscape:w-14 lg:landscape:h-6 lg:landscape:w-24"
+          className="relative flex h-6 w-24 items-center rounded-full border border-deck-border bg-panel-sunken landscape:h-3 landscape:w-11 lg:landscape:h-6 lg:landscape:w-24"
           role="group"
           aria-label={`Deck ${deck} crossfader assign`}
+          onDoubleClick={() => handleAssign("thru")}
         >
           <div
-            className="pointer-events-none absolute top-0.5 h-5 w-1/3 rounded-full bg-amber shadow-md transition-[left] duration-150 landscape:top-px landscape:h-3 lg:landscape:top-0.5 lg:landscape:h-5"
+            className="pointer-events-none absolute top-0.5 h-5 w-1/3 rounded-full bg-amber shadow-md transition-[left] duration-150 landscape:top-px landscape:h-2 lg:landscape:top-0.5 lg:landscape:h-5"
             style={{ left: `calc(${assignIndex * (100 / 3)}% + 2px)`, width: "calc(33.33% - 4px)" }}
           />
           {ASSIGNS.map(({ id, label }) => (

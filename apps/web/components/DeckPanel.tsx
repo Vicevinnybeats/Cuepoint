@@ -2,7 +2,14 @@
 
 import { useCallback, useRef, useState } from "react";
 import { useStore } from "zustand/react";
-import { decksStore, syncRate, clampTempoPercent, ratioToTempoPercent, pressCue } from "@cuepoint/engine";
+import {
+  decksStore,
+  syncRate,
+  clampTempoPercent,
+  ratioToTempoPercent,
+  pressCue,
+  TEMPO_RANGE_PERCENT,
+} from "@cuepoint/engine";
 import type { DeckId } from "@cuepoint/engine";
 import { emptySnapshot } from "@cuepoint/dsp";
 import { db } from "@cuepoint/library";
@@ -204,7 +211,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
   // TimeStretcher / DeckMessage's "rate") without shifting pitch.
   const handleTempo = useCallback(
     (v: number) => {
-      const percent = v * 8; // +-8% range, the mixer-standard default
+      const percent = v * TEMPO_RANGE_PERCENT;
       setTempo(deck, percent);
       engine?.setRate(deck, 1 + percent / 100);
     },
@@ -363,7 +370,12 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         </div>
       </div>
 
-      <LoopControls deck={deck} />
+      {/* Dropped on a landscape phone specifically to make room — hot cues
+          (max 4, capped by HOT_CUE_COLORS) are the higher-value control in
+          that cramped a space. Still available in portrait and desktop. */}
+      <div className="landscape:hidden lg:landscape:block">
+        <LoopControls deck={deck} />
+      </div>
 
       <div className="flex items-center gap-2 landscape:gap-0.5">
         <button
@@ -419,7 +431,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
           onChange={(e) => void handleFile(e)}
         />
         <Slider
-          value={state.tempoPercent / 8}
+          value={state.tempoPercent / TEMPO_RANGE_PERCENT}
           onChange={handleTempo}
           bipolar
           height={compact ? 16 : 90}
