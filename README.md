@@ -75,28 +75,23 @@ back to `MessagePort` transport and reports reduced timing fidelity.
 
 ### Sync (Cloudflare)
 
-Metadata sync is a Cloudflare Worker (`apps/sync-worker`) backed by D1 —
-`sync_items(sync_key, collection, id, data, updated_at, deleted)`, last-write-
-wins on `updated_at`. No accounts: a random "sync key" generated on-device
-(`packages/sync`) stands in for one, and pasting it into another device's
-Sync panel links them. Only track metadata, hot cues, and mixer settings
-sync — never audio, and sync only updates a track that's already loaded
-locally on both devices (matched by filename + modified time); it never
-creates a library entry from a remote record, because there's no audio
-behind it on this device.
+A Cloudflare Worker (`apps/sync-worker`) backed by D1 syncs track metadata,
+cue points, hot cues, playlists and mixer settings between your own devices
+— never audio. No accounts: a random "sync key" generated on-device stands
+in for one; paste it into another device's Sync panel to link them.
 
-The D1 database (`cuepoint-sync`) already exists in this Cloudflare
-account with its schema applied. Deploying the Worker itself needs a login,
-which isn't something this session can do on your behalf:
+- Conflicts: last write wins, by the writing device's `updatedAt`.
+- Pull cursors: the server's own clock (`server_updated_at`), so an edit
+  made offline and pushed later is never skipped.
+- Deletions (playlists) are tombstones, so they propagate.
+- Track records only update tracks already loaded on that device (matched
+  by filename + modified time) — there's no audio behind a remote-only one.
+- Auto-sync (toggle in the panel): every minute, on returning to the app,
+  and when the network comes back.
 
-```sh
-cd apps/sync-worker
-npx wrangler login
-npx wrangler deploy
-```
-
-That prints a `*.workers.dev` URL — paste it into the Sync panel's Worker
-URL field in the app.
+The D1 database `cuepoint-sync` already exists in the Cloudflare account,
+with both migrations in `apps/sync-worker/migrations` applied. The Worker
+itself has to be deployed with your credentials — see **Manual steps**.
 
 ## Testing
 
@@ -108,60 +103,61 @@ URL field in the app.
 
 ## Status
 
-**Done:**
+Everything below is built, tested, and live at the URL above except where
+**Manual steps** says otherwise. 158 tests (2 end-to-end tests run only
+against a live Worker).
 
-- `packages/dsp` — biquad/EQ3/filter/limiter/meter/resampler kernels, seqlock
-  shared-state protocol, deck + master AudioWorklet processors. 75 tests.
-- `packages/engine` — UI store (zustand/vanilla), `EngineClient` browser
-  facade over the AudioContext/worklet graph, pitch/sync math.
-- `packages/analysis` — offline BPM detection (energy-envelope
-  autocorrelation with parabolic sub-frame refinement, folds octave errors
-  into a 70-180 BPM range), key detection (12-bin chroma via a minimal FFT,
-  correlated against the Krumhansl-Kessler profiles, reported as a Camelot
-  wheel code — the harmonic-mixing notation DJ software uses), and
-  waveform peak extraction. All three run in a Web Worker so a long track
-  never blocks the main thread. 20 tests, including BPM accuracy against
-  synthetic click tracks at five tempos and key detection against major/
-  minor triads.
-- `apps/web` — full deck + mixer UI (jogwheels, waveform display, 3-band EQ,
-  filter, hot cues, crossfader with curve selection, pitch fader, level
-  metering), responsive desktop (three-column) and mobile (stacked)
-  layouts. Loading a local audio file runs it through decode + the analysis
-  worker, then Play drives real playback through the worklet graph — BPM
-  and the waveform shown are measured, not typed in. Sync retunes a deck's
-  rate to match the other deck's measured BPM.
-- `packages/library` — Dexie/IndexedDB persistence. A loaded track's
-  metadata, hot cues and audio Blob are saved locally; the library panel
-  lists saved tracks and reloads either into deck A or B (cues restored)
-  without re-picking the file. 6 tests (fake-indexeddb).
-- `packages/sync` + `apps/sync-worker` — Cloudflare Worker/D1 sync for
-  track metadata, hot cues and mixer settings, last-write-wins by
-  `updatedAt`, keyed by a random per-install sync key instead of an
-  account. Verified against the live D1 database (a stale write with an
-  older `updatedAt` is correctly rejected). 7 tests on the client
-  (mocked fetch); the Worker itself needs a login to deploy, which this
-  session can't do — see "Sync (Cloudflare)" above.
-- Two install targets, one codebase: a real service worker
-  (`apps/web/public/sw.js`, cache-first for same-origin GETs) makes the PWA
-  work offline once installed, and `apps/desktop` wraps the same build as
-  a native Electron app — verified: static export builds clean, and the
-  bundled server was smoke-tested standalone (200 + correct COOP/COEP
-  headers).
-- Deployed to Vercel (git-linked, auto-redeploys on push) for real phone
-  testing — a local dev server isn't installable as a PWA since it isn't
-  a secure context. See "Try it now" above.
-- Mobile-first layout: the mixer no longer forces three channel strips
-  into one unusable row on a phone screen, touch targets are a real ~44px,
-  and the jog wheel sizes responsively instead of a fixed 200px.
+- **Audio engine** (`packages/dsp`, 92 tests) — biquad / 3-band EQ with
+  kill / bipolar filter / limiter / meters / Catmull-Rom resampler with
+  sample-accurate loops, as AudioWorklets. Playhead and meters reach the UI
+  through a seqlock over `SharedArrayBuffer`, with a MessagePort fallback
+  when the page isn't cross-origin isolated. The EQ runs in **WebAssembly**
+  (hand-written WAT, zero-copy, bit-identical to the JS kernel, which stays
+  as the fallback). Every kernel is per channel, and the processors
+  themselves are tested in Node with a fake AudioWorklet scope.
+- **Analysis** (`packages/analysis`, 20 tests) — BPM, musical key (as a
+  Camelot code) and waveform peaks, in a Web Worker.
+- **Deck** — CDJ-style CUE (set / hold-to-preview / return), 4 hot cues
+  (long-press or right-click to delete), 1–16 beat loops, tempo sync,
+  pitch fader, tap-to-seek waveform with cue markers, keyboard control on
+  desktop.
+- **Mixer** — gain, 3-band EQ, filter, channel faders, crossfader with three
+  curves, master gain and limiter, stereo meters.
+- **Library** (`packages/library`, 15 tests) — IndexedDB. Audio, analysis,
+  cue points and hot cues persist across reloads; playlists with reorder.
+- **Sync** (`packages/sync` + `apps/sync-worker`, 15 tests) — see above.
+  Verified against the live D1 database and end to end under
+  `wrangler dev --local`, including 2,500-record paging.
+- **Install targets** — PWA (network-first page loads, offline assets, real
+  PNG icons including the iOS home-screen icon), Electron desktop shell,
+  and CI on every push.
+- **UI** — Kontrol S2-inspired hardware look; portrait phone stacks, landscape
+  phone and desktop put the decks either side of the mixer; launch splash.
 
-**Stubbed:**
+## Manual steps
 
-- The sync worker is written and its D1 database exists, but isn't
-  deployed — `npx wrangler deploy` from `apps/sync-worker` needs a login
-  only you can do (see "Sync (Cloudflare)" above). Playlists aren't synced
-  yet, only track metadata/cues and mixer settings.
-- No WASM DSP path — the kernels in `packages/dsp` are the reference
-  implementation; a WASM build behind the same interface is a later swap.
-- PWA icons are placeholder SVGs, not designed artwork.
-- The jogwheel's visual spin rate assumes a 48 kHz AudioContext (see
-  `apps/web/components/JogWheel.tsx`) — cosmetic only, does not affect audio.
+These need your accounts or your hands; everything else is done.
+
+1. **Deploy the sync worker** (only needed for cross-device sync). Either:
+   - GitHub → repo Settings → Secrets and variables → Actions: add
+     `CLOUDFLARE_API_TOKEN` (Cloudflare dashboard → My Profile → API Tokens
+     → "Edit Cloudflare Workers" template) and `CLOUDFLARE_ACCOUNT_ID`
+     (Cloudflare dashboard, right sidebar of any Workers page). Then Actions
+     → "Deploy sync worker" → Run workflow. Or:
+   - Locally: `cd apps/sync-worker && npx wrangler login && npx wrangler deploy`.
+
+   Either way you get a `https://cuepoint-sync.<you>.workers.dev` URL. Paste it
+   into the Sync panel's **Worker URL** on each device, copy the **sync key**
+   from one device into the other, and tick **Sync automatically**.
+   Don't run `wrangler d1 migrations apply --remote` — the live database
+   already has both migrations.
+2. **Test on your phone** — open https://cuepoint-green.vercel.app, then
+   Share → Add to Home Screen (iOS) or Install app (Android).
+3. **Desktop app** (optional) — on your computer: `pnpm install`, then
+   `pnpm --filter @cuepoint/desktop dist` builds an installer into
+   `apps/desktop/release/`. Unsigned, so macOS/Windows will warn the first
+   time you open it.
+4. **Merge** this branch into `main` whenever you're happy with it. Right
+   now the live site deploys from `claude/clever-dijkstra-ij3g5v`; after
+   merging, check Vercel → cuepoint → Settings → Git → Production Branch is
+   `main`.
