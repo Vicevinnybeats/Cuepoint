@@ -72,27 +72,11 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
     [deck, engine, setFader],
   );
 
+  const assignIndex = ASSIGNS.findIndex((a) => a.id === assign);
+
   return (
     <div className="panel-surface flex flex-col items-center gap-3 rounded-xl border border-deck-border p-3 shadow-panel landscape:gap-2 landscape:p-2 lg:gap-3 lg:p-3">
       <span className="text-xs font-bold tracking-widest text-neutral-400">{deck}</span>
-      <div className="flex gap-0.5" role="group" aria-label={`Deck ${deck} crossfader assign`}>
-        {ASSIGNS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => handleAssign(id)}
-            className={cx(
-              "min-h-7 rounded-sm border px-1.5 text-[9px] font-bold uppercase",
-              assign === id
-                ? "border-transparent bg-amber text-black"
-                : "border-deck-border text-neutral-500",
-            )}
-            title={`Assign deck ${deck} to the crossfader's ${label} side`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
       <Knob
         value={state.gain / GAIN_RANGE}
         onChange={handleGain}
@@ -113,7 +97,40 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
           height={140}
           label="Level"
           resetValue={1}
+          ticks={10}
         />
+      </div>
+
+      {/* Hardware-style 3-position switch — a single track with a thumb
+          that snaps to A / Thru / B, rather than 3 separate buttons. */}
+      <div className="flex flex-col items-center gap-1">
+        <div
+          className="relative flex h-6 w-24 items-center rounded-full border border-deck-border bg-panel-sunken"
+          role="group"
+          aria-label={`Deck ${deck} crossfader assign`}
+        >
+          <div
+            className="pointer-events-none absolute top-0.5 h-5 w-1/3 rounded-full bg-amber shadow-md transition-[left] duration-150"
+            style={{ left: `calc(${assignIndex * (100 / 3)}% + 2px)`, width: "calc(33.33% - 4px)" }}
+          />
+          {ASSIGNS.map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => handleAssign(id)}
+              className={cx(
+                "relative z-10 flex-1 text-[9px] font-bold uppercase",
+                assign === id ? "text-black" : "text-neutral-400",
+              )}
+              title={`Assign deck ${deck} to the crossfader's ${label} side`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <span className="text-[8px] font-medium uppercase tracking-wide text-neutral-600">
+          X-Fader Assign
+        </span>
       </div>
     </div>
   );

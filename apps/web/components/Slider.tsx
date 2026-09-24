@@ -14,6 +14,9 @@ interface SliderProps {
    * puts "neutral" (e.g. a channel fader's unity/full-up position)
    * somewhere else on the 0..1/-1..1 range. */
   resetValue?: number;
+  /** Number of tick-mark divisions along the track (e.g. 10 for a 0-10
+   * hardware-style channel fader scale). 0 (default) draws no ticks. */
+  ticks?: number;
 }
 
 export function Slider({
@@ -23,6 +26,7 @@ export function Slider({
   height = 160,
   label,
   resetValue,
+  ticks = 0,
 }: SliderProps) {
   const trackRef = useRef<HTMLDivElement | null>(null);
 
@@ -79,6 +83,14 @@ export function Slider({
         {bipolar && (
           <div className="pointer-events-none absolute left-0 right-0 top-1/2 h-px bg-deck-border" />
         )}
+        {ticks > 0 &&
+          Array.from({ length: ticks + 1 }, (_, i) => (
+            <div
+              key={i}
+              className="pointer-events-none absolute left-1.5 right-1.5 h-px bg-neutral-700"
+              style={{ top: `${(i / ticks) * 100}%` }}
+            />
+          ))}
         <div
           className="pointer-events-none absolute left-1/2 h-4 w-12 -translate-x-1/2 rounded-sm border border-black/40 bg-neutral-300 shadow-md"
           style={{ top: `calc(${thumbTopPercent}% - 8px)` }}
