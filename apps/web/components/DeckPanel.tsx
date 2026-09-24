@@ -8,6 +8,7 @@ import { emptySnapshot } from "@cuepoint/dsp";
 import { db } from "@cuepoint/library";
 import { useEngine } from "@/lib/engine-provider";
 import { useDeckFrame } from "@/hooks/useDeckFrame";
+import { useDeckKeys, DECK_KEY_HINTS } from "@/hooks/useDeckKeys";
 import { JogWheel } from "./JogWheel";
 import { Waveform } from "./Waveform";
 import type { WaveformMarker } from "./Waveform";
@@ -257,6 +258,14 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
     [connect, deck, engine, exitLoopIfActive, setHotCue, setPlaying, state.hotCues, state.track],
   );
 
+  useDeckKeys(deck, {
+    cueDown: () => void handleCueDown(),
+    cueUp: handleCueUp,
+    play: () => void handlePlay(),
+    sync: () => void handleSync(),
+    hotCue: (index) => void handleHotCue(index),
+  });
+
   const trackFrames = state.track
     ? state.track.durationSeconds * (engine?.sampleRate ?? 48000)
     : 0;
@@ -283,6 +292,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
     <div className="panel-surface flex flex-col gap-3 rounded-xl border border-deck-border p-4 shadow-panel landscape:gap-2 landscape:p-2 lg:gap-3 lg:p-4">
       <div className="flex items-center justify-between">
         <span className="text-sm font-bold tracking-widest text-neutral-300">DECK {deck}</span>
+        <span className="hidden text-[9px] text-neutral-600 lg:inline">{DECK_KEY_HINTS[deck]}</span>
         <div
           ref={playingIndicatorRef}
           className="h-2 w-2 rounded-full bg-accent-hot transition-opacity"
