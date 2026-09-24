@@ -14,5 +14,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
-  "devDependencies": { "vitest": "^2.1.8" }
+  "devDependencies": {
+    "vitest": "^2.1.8",
+    "wabt": "1.0.36"
+  }
 }

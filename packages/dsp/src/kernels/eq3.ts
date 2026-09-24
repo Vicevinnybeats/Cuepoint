@@ -23,6 +23,9 @@ import { SmoothedValue } from "./smoothed.js";
 export const EQ_LOW_HZ = 200;
 export const EQ_HIGH_HZ = 4000;
 
+/** Kill/boost envelope time constant, shared with the WASM port. */
+export const EQ_GAIN_SMOOTHING_MS = 5;
+
 const MAX_BOOST_DB = 6;
 const MAX_CUT_DB = -26;
 const KILL_THRESHOLD = 0.02;
@@ -33,7 +36,7 @@ export function knobToDb(knob: number): number {
   return k >= 0.5 ? ((k - 0.5) / 0.5) * MAX_BOOST_DB : ((0.5 - k) / 0.5) * MAX_CUT_DB;
 }
 
-function knobToGain(knob: number): number {
+export function knobToGain(knob: number): number {
   if (knob <= KILL_THRESHOLD) return 0;
   return Math.pow(10, knobToDb(knob) / 20);
 }
@@ -77,9 +80,9 @@ export class Eq3 {
     this.highB.set("highpass", EQ_HIGH_HZ, Math.SQRT1_2);
 
     // 5 ms avoids a click on a rhythmic bass kill without smearing it.
-    this.lowGain = new SmoothedValue(1, sampleRate, 5);
-    this.midGain = new SmoothedValue(1, sampleRate, 5);
-    this.highGain = new SmoothedValue(1, sampleRate, 5);
+    this.lowGain = new SmoothedValue(1, sampleRate, EQ_GAIN_SMOOTHING_MS);
+    this.midGain = new SmoothedValue(1, sampleRate, EQ_GAIN_SMOOTHING_MS);
+    this.highGain = new SmoothedValue(1, sampleRate, EQ_GAIN_SMOOTHING_MS);
   }
 
   reset(): void {

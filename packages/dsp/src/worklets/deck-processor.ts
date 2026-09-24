@@ -7,10 +7,21 @@
  * Nothing inside `process` allocates, logs, awaits or locks. Every buffer and
  * every kernel is built in the constructor; control changes arrive as messages
  * and are applied by mutating already-allocated state.
+ *
+ * Every stateful kernel is per channel. Sharing one filter between left and
+ * right hands each channel the other's filter memory at every block
+ * boundary — a discontinuity ~375 times a second on stereo material.
+ *
+ * The EQ runs in WASM when it can (src/wasm/eq3.wat, bit-identical to the JS
+ * kernel), with the scratch buffers allocated inside WASM memory so it
+ * processes them in place. If WebAssembly is unavailable the JS Eq3 runs
+ * instead, with identical output.
  */
 
 import { TrackReader } from "../kernels/resampler.js";
 import { Eq3 } from "../kernels/eq3.js";
+import { WasmDsp } from "../wasm/wasm-dsp.js";
+import { WasmEq3 } from "../wasm/wasm-eq3.js";
 import { FilterKnob } from "../kernels/filter-knob.js";
 import { Meter } from "../kernels/meter.js";
 import { SmoothedValue } from "../kernels/smoothed.js";
@@ -22,17 +33,21 @@ const MAX_QUANTUM = 1024;
 
 class DeckProcessor extends AudioWorkletProcessor {
   private readonly reader = new TrackReader();
-  private readonly eq: Eq3;
-  private readonly filter: FilterKnob;
-  private readonly meter: Meter;
+  private readonly eqL: Eq3 | WasmEq3;
+  private readonly eqR: Eq3 | WasmEq3;
+  private readonly filterL: FilterKnob;
+  private readonly filterR: FilterKnob;
+  private readonly meterL: Meter;
+  private readonly meterR: Meter;
 
   private readonly trim: SmoothedValue;
   private readonly fader: SmoothedValue;
   private readonly cueMute: SmoothedValue;
 
   // Scratch for the left/right render before it is written to the outputs.
-  private readonly scratchL = new Float32Array(MAX_QUANTUM);
-  private readonly scratchR = new Float32Array(MAX_QUANTUM);
+  // Lives in WASM memory when the WASM EQ is in use (zero-copy).
+  private readonly scratchL: Float32Array;
+  private readonly scratchR: Float32Array;
 
   private readonly shared: SharedStateWriter | null;
   /** Set only when the state buffer isn't truly shared (no COOP/COEP). */
@@ -45,9 +60,27 @@ class DeckProcessor extends AudioWorkletProcessor {
     super(options);
     const data = options?.processorOptions as { sharedState?: SharedArrayBuffer | ArrayBuffer };
 
-    this.eq = new Eq3(sampleRate);
-    this.filter = new FilterKnob(sampleRate);
-    this.meter = new Meter(sampleRate);
+    let dsp: WasmDsp | null = null;
+    try {
+      dsp = WasmDsp.create();
+    } catch {
+      dsp = null; // no WebAssembly in this scope: the JS kernels are identical
+    }
+    if (dsp) {
+      this.eqL = new WasmEq3(sampleRate, dsp);
+      this.eqR = new WasmEq3(sampleRate, dsp);
+      this.scratchL = dsp.allocF32(MAX_QUANTUM);
+      this.scratchR = dsp.allocF32(MAX_QUANTUM);
+    } else {
+      this.eqL = new Eq3(sampleRate);
+      this.eqR = new Eq3(sampleRate);
+      this.scratchL = new Float32Array(MAX_QUANTUM);
+      this.scratchR = new Float32Array(MAX_QUANTUM);
+    }
+    this.filterL = new FilterKnob(sampleRate);
+    this.filterR = new FilterKnob(sampleRate);
+    this.meterL = new Meter(sampleRate);
+    this.meterR = new Meter(sampleRate);
     this.trim = new SmoothedValue(1, sampleRate, 15);
     this.fader = new SmoothedValue(1, sampleRate, 15);
     // A cue cut is a mute button, not a fade: short enough to feel instant,
@@ -74,9 +107,12 @@ class DeckProcessor extends AudioWorkletProcessor {
         this.reader.load(channels);
         this.bpm = message.bpm;
         this.playing = false;
-        this.eq.reset();
-        this.filter.reset();
-        this.meter.reset();
+        this.eqL.reset();
+        this.eqR.reset();
+        this.filterL.reset();
+        this.filterR.reset();
+        this.meterL.reset();
+        this.meterR.reset();
         break;
       }
       case "unload":
@@ -104,12 +140,15 @@ class DeckProcessor extends AudioWorkletProcessor {
         this.reader.clearLoop();
         break;
       case "eq":
-        this.eq.setLow(message.low);
-        this.eq.setMid(message.mid);
-        this.eq.setHigh(message.high);
+        for (const eq of [this.eqL, this.eqR]) {
+          eq.setLow(message.low);
+          eq.setMid(message.mid);
+          eq.setHigh(message.high);
+        }
         break;
       case "filter":
-        this.filter.set(message.value);
+        this.filterL.set(message.value);
+        this.filterR.set(message.value);
         break;
       case "gain":
         this.trim.set(message.value);
@@ -139,10 +178,10 @@ class DeckProcessor extends AudioWorkletProcessor {
       scratchR.fill(0, 0, frames);
     }
 
-    this.eq.process(scratchL, frames);
-    this.eq.process(scratchR, frames);
-    this.filter.process(scratchL, frames);
-    this.filter.process(scratchR, frames);
+    this.eqL.process(scratchL, frames);
+    this.eqR.process(scratchR, frames);
+    this.filterL.process(scratchL, frames);
+    this.filterR.process(scratchR, frames);
 
     for (let i = 0; i < frames; i++) {
       const g = this.trim.next() * this.fader.next() * this.cueMute.next();
@@ -154,7 +193,8 @@ class DeckProcessor extends AudioWorkletProcessor {
       outR[i] = r;
     }
 
-    this.meter.process(scratchL, frames);
+    this.meterL.process(scratchL, frames);
+    this.meterR.process(scratchR, frames);
     this.publish();
     this.poster?.tick();
     return true;
@@ -172,14 +212,14 @@ class DeckProcessor extends AudioWorkletProcessor {
     shared.f64[F64.LoopEndFrames] = reader.loop.end;
     shared.f64[F64.Rate] = reader.rate;
     shared.f64[F64.EffectiveBpm] = this.bpm * reader.rate;
-    shared.f32[F32.PeakLeft] = this.meter.peak;
-    shared.f32[F32.PeakRight] = this.meter.peak;
-    shared.f32[F32.RmsLeft] = this.meter.rms;
-    shared.f32[F32.RmsRight] = this.meter.rms;
+    shared.f32[F32.PeakLeft] = this.meterL.peak;
+    shared.f32[F32.PeakRight] = this.meterR.peak;
+    shared.f32[F32.RmsLeft] = this.meterL.rms;
+    shared.f32[F32.RmsRight] = this.meterR.rms;
     shared.setFlag(I32.Playing, this.playing);
     shared.setFlag(I32.LoopActive, reader.loop.active);
     shared.setFlag(I32.Empty, !reader.isLoaded);
-    shared.setFlag(I32.Clipping, this.meter.isClipping);
+    shared.setFlag(I32.Clipping, this.meterL.isClipping || this.meterR.isClipping);
     // Edge-triggered: the UI sees a counter tick once per end, not a level.
     if (reader.atEnd && !this.lastEnded) shared.bumpEnded();
     this.lastEnded = reader.atEnd;

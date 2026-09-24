@@ -16,7 +16,8 @@ import type { MasterMessage } from "../protocol.js";
 
 class MasterProcessor extends AudioWorkletProcessor {
   private readonly limiter: Limiter;
-  private readonly meter: Meter;
+  private readonly meterL: Meter;
+  private readonly meterR: Meter;
   private readonly masterGain: SmoothedValue;
   private readonly fadeA: SmoothedValue;
   private readonly fadeB: SmoothedValue;
@@ -35,7 +36,8 @@ class MasterProcessor extends AudioWorkletProcessor {
     const data = options?.processorOptions as { sharedState?: SharedArrayBuffer | ArrayBuffer };
 
     this.limiter = new Limiter(sampleRate);
-    this.meter = new Meter(sampleRate);
+    this.meterL = new Meter(sampleRate);
+    this.meterR = new Meter(sampleRate);
     this.masterGain = new SmoothedValue(1, sampleRate, 15);
     // The crossfader is smoothed rather than applied per message so a fast
     // cut stays click-free without quantising to the message rate.
@@ -97,17 +99,18 @@ class MasterProcessor extends AudioWorkletProcessor {
     }
 
     this.limiter.process(outL, outR, frames);
-    this.meter.process(outL, frames);
+    this.meterL.process(outL, frames);
+    this.meterR.process(outR, frames);
 
     const shared = this.shared;
     if (shared) {
       shared.beginWrite();
-      shared.f32[F32.PeakLeft] = this.meter.peak;
-      shared.f32[F32.PeakRight] = this.meter.peak;
-      shared.f32[F32.RmsLeft] = this.meter.rms;
-      shared.f32[F32.RmsRight] = this.meter.rms;
+      shared.f32[F32.PeakLeft] = this.meterL.peak;
+      shared.f32[F32.PeakRight] = this.meterR.peak;
+      shared.f32[F32.RmsLeft] = this.meterL.rms;
+      shared.f32[F32.RmsRight] = this.meterR.rms;
       shared.f32[F32.GainReduction] = this.limiter.reduction;
-      shared.setFlag(I32.Clipping, this.meter.isClipping);
+      shared.setFlag(I32.Clipping, this.meterL.isClipping || this.meterR.isClipping);
       shared.endWrite();
     }
     this.poster?.tick();
