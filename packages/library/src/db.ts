@@ -26,13 +26,31 @@ export interface StoredTrack {
   updatedAt: number;
 }
 
+export interface Playlist {
+  id: string;
+  name: string;
+  /** Track ids in play order. May reference tracks this device doesn't have
+   * (synced from another device); those are simply not shown. */
+  trackIds: string[];
+  createdAt: number;
+  updatedAt: number;
+  /** Tombstone rather than a hard delete, so a deletion syncs to other
+   * devices instead of the playlist reappearing on the next pull. */
+  deleted: boolean;
+}
+
 export class LibraryDB extends Dexie {
   tracks!: EntityTable<StoredTrack, "id">;
+  playlists!: EntityTable<Playlist, "id">;
 
   constructor(name = "cuepoint-library") {
     super(name);
     this.version(1).stores({
       tracks: "id, title, artist, addedAt",
+    });
+    this.version(2).stores({
+      tracks: "id, title, artist, addedAt",
+      playlists: "id, name, updatedAt",
     });
   }
 }

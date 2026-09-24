@@ -40,10 +40,14 @@ describe("SyncClient", () => {
     await expect(client.push("tracks", [{ id: "t1", data: {}, updatedAt: 1 }])).rejects.toThrow(/500/);
   });
 
-  it("pull builds the query string and parses the response", async () => {
+  it("pull builds the query string and parses the page", async () => {
     const fetchMock = vi.mocked(fetch);
-    const items = [{ collection: "tracks", id: "t1", data: "{}", updatedAt: 5, deleted: 0 }];
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ items }), { status: 200 }));
+    const items = [
+      { collection: "tracks", id: "t1", data: "{}", updatedAt: 5, deleted: 0, serverUpdatedAt: 90 },
+    ];
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ items, cursor: 90, more: false }), { status: 200 }),
+    );
 
     const client = new SyncClient(BASE_URL, SYNC_KEY);
     const result = await client.pull("tracks", 42);
@@ -54,7 +58,40 @@ describe("SyncClient", () => {
     expect(parsed.searchParams.get("syncKey")).toBe(SYNC_KEY);
     expect(parsed.searchParams.get("since")).toBe("42");
     expect(parsed.searchParams.get("collection")).toBe("tracks");
-    expect(result).toEqual(items);
+    expect(result).toEqual({ items, cursor: 90, more: false });
+  });
+
+  it("keeps the cursor where it was when the server returns nothing", async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ items: [] }), { status: 200 }));
+    const result = await new SyncClient(BASE_URL, SYNC_KEY).pull("tracks", 42);
+    expect(result).toEqual({ items: [], cursor: 42, more: false });
+  });
+
+  it("pullAll follows pages until the server says there are no more", async () => {
+    const fetchMock = vi.mocked(fetch);
+    const item = (id: string, ts: number) => ({
+      collection: "tracks",
+      id,
+      data: "{}",
+      updatedAt: 1,
+      deleted: 0,
+      serverUpdatedAt: ts,
+    });
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ items: [item("a", 10)], cursor: 9, more: true }), { status: 200 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ items: [item("b", 20)], cursor: 20, more: false }), { status: 200 }),
+      );
+
+    const result = await new SyncClient(BASE_URL, SYNC_KEY).pullAll("tracks", 0);
+
+    expect(result.items.map((i) => i.id)).toEqual(["a", "b"]);
+    expect(result.cursor).toBe(20);
+    // Second request must resume from the first page's cursor.
+    const second = new URL((fetchMock.mock.calls[1] as [string])[0]);
+    expect(second.searchParams.get("since")).toBe("9");
   });
 
   it("pull throws on a non-ok response", async () => {

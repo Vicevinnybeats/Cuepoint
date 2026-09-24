@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { EngineClient } from "@cuepoint/engine";
+import { EngineClient, decksStore } from "@cuepoint/engine";
+import type { DecksStore } from "@cuepoint/engine";
 import { emptySnapshot } from "@cuepoint/dsp";
 import type { DeckSnapshot } from "@cuepoint/dsp";
 import type { DeckId } from "@cuepoint/engine";
@@ -31,6 +32,30 @@ interface EngineContextValue {
 }
 
 const WAVEFORM_COLUMNS = 300;
+
+/**
+ * Pushes every commanded control value from the UI store into the engine.
+ * Controls call the engine directly as they move, but only once it exists —
+ * anything moved before the first tap created the AudioContext (or changed
+ * by a sync pull) would otherwise be shown in the UI and ignored by audio.
+ */
+function applyStoreToEngine(client: EngineClient, state: DecksStore): void {
+  for (const deck of ["A", "B"] as const) {
+    const d = state.decks[deck];
+    client.setEq(deck, d.eqLow, d.eqMid, d.eqHigh);
+    client.setFilter(deck, d.filter);
+    client.setGain(deck, d.gain);
+    client.setFader(deck, d.faderLevel);
+    client.setRate(deck, 1 + d.pitchPercent / 100);
+  }
+  applyMixerToEngine(client, state);
+}
+
+function applyMixerToEngine(client: EngineClient, state: DecksStore): void {
+  client.setCrossfader(state.mixer.crossfaderPosition);
+  client.setCrossfaderCurve(state.mixer.crossfaderCurve);
+  client.setMasterGain(state.mixer.masterGain);
+}
 
 const EngineContext = createContext<EngineContextValue | null>(null);
 
@@ -65,6 +90,7 @@ export function EngineProvider({ children }: { children: React.ReactNode }) {
     })
       .then(async (client) => {
         await client.resume();
+        applyStoreToEngine(client, decksStore.getState());
         engineRef.current = client;
         setEngine(client);
         setConnecting(false);
@@ -125,6 +151,19 @@ export function EngineProvider({ children }: { children: React.ReactNode }) {
       analysisWorkerRef.current?.terminate();
     };
   }, []);
+
+  // Mixer settings can change without anyone touching a control — a sync
+  // pull replaces them wholesale — so mirror them into the engine whenever
+  // they change. Local control changes also land here; resending the same
+  // value is harmless (the worklet just re-targets its smoother).
+  useEffect(
+    () =>
+      decksStore.subscribe((state, previous) => {
+        const client = engineRef.current;
+        if (client && state.mixer !== previous.mixer) applyMixerToEngine(client, state);
+      }),
+    [],
+  );
 
   useEffect(() => {
     let frame = 0;
