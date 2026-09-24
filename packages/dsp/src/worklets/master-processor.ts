@@ -11,7 +11,7 @@ import type { CrossfaderCurve, CrossfaderGains } from "../kernels/crossfader.js"
 import { Limiter } from "../kernels/limiter.js";
 import { Meter } from "../kernels/meter.js";
 import { SmoothedValue } from "../kernels/smoothed.js";
-import { SharedStateWriter, F32, I32 } from "../shared-state.js";
+import { SharedStateWriter, SnapshotPoster, isSharedBuffer, F32, I32 } from "../shared-state.js";
 import type { MasterMessage } from "../protocol.js";
 
 class MasterProcessor extends AudioWorkletProcessor {
@@ -27,10 +27,12 @@ class MasterProcessor extends AudioWorkletProcessor {
   private position = 0;
 
   private readonly shared: SharedStateWriter | null;
+  /** Set only when the state buffer isn't truly shared (no COOP/COEP). */
+  private readonly poster: SnapshotPoster | null;
 
   constructor(options?: AudioWorkletNodeOptions) {
     super(options);
-    const data = options?.processorOptions as { sharedState?: SharedArrayBuffer };
+    const data = options?.processorOptions as { sharedState?: SharedArrayBuffer | ArrayBuffer };
 
     this.limiter = new Limiter(sampleRate);
     this.meter = new Meter(sampleRate);
@@ -41,6 +43,10 @@ class MasterProcessor extends AudioWorkletProcessor {
     this.fadeB = new SmoothedValue(1, sampleRate, 6);
 
     this.shared = data?.sharedState ? new SharedStateWriter(data.sharedState) : null;
+    this.poster =
+      data?.sharedState && !isSharedBuffer(data.sharedState)
+        ? new SnapshotPoster(data.sharedState, this.port)
+        : null;
     this.applyCrossfader();
 
     this.port.onmessage = (event: MessageEvent<MasterMessage>) => {
@@ -56,8 +62,6 @@ class MasterProcessor extends AudioWorkletProcessor {
           break;
         case "masterGain":
           this.masterGain.set(message.value);
-          break;
-        case "snapshotInterval":
           break;
       }
     };
@@ -106,6 +110,7 @@ class MasterProcessor extends AudioWorkletProcessor {
       shared.setFlag(I32.Clipping, this.meter.isClipping);
       shared.endWrite();
     }
+    this.poster?.tick();
     return true;
   }
 }

@@ -41,17 +41,4 @@ export type DeckMessage =
 export type MasterMessage =
   | { type: "crossfader"; position: number }
   | { type: "crossfaderCurve"; curve: CrossfaderCurve }
-  | { type: "masterGain"; value: number }
-  /** Snapshot transport for pages without cross-origin isolation. */
-  | { type: "snapshotInterval"; frames: number };
-
-/** Posted by a worklet when SharedArrayBuffer is unavailable. */
-export interface SnapshotMessage {
-  type: "snapshot";
-  playheadFrames: number;
-  peakLeft: number;
-  peakRight: number;
-  playing: boolean;
-  loopActive: boolean;
-  endedCount: number;
-}
+  | { type: "masterGain"; value: number };

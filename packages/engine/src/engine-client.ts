@@ -9,7 +9,13 @@
  * once the worklet bundle step exists (see README "Stubbed").
  */
 
-import { createSharedStateBuffer, SharedStateReader } from "@cuepoint/dsp/shared";
+import {
+  createSharedStateBuffer,
+  SharedStateReader,
+  applySnapshot,
+  isSharedBuffer,
+  isStateSnapshot,
+} from "@cuepoint/dsp/shared";
 import type { DeckMessage, MasterMessage } from "@cuepoint/dsp";
 import type { CrossfaderCurve } from "@cuepoint/dsp/kernels";
 import type { DeckId } from "./types.js";
@@ -57,6 +63,22 @@ export class EngineClient {
       processorOptions: { sharedState: bufferMaster },
     });
 
+    // Without cross-origin isolation the buffers above are plain
+    // ArrayBuffers: each worklet writes into its own copy, and posts that
+    // copy back over its port instead (see SnapshotPoster). Mirror it here
+    // so the readers — and everything drawing from them — work unchanged.
+    const pairs: Array<[AudioWorkletNode, SharedArrayBuffer | ArrayBuffer]> = [
+      [deckA, bufferA],
+      [deckB, bufferB],
+      [master, bufferMaster],
+    ];
+    for (const [node, buffer] of pairs) {
+      if (isSharedBuffer(buffer)) continue;
+      node.port.onmessage = (event: MessageEvent<unknown>) => {
+        if (isStateSnapshot(event.data)) applySnapshot(buffer, event.data.bytes);
+      };
+    }
+
     deckA.connect(master, 0, 0);
     deckB.connect(master, 0, 1);
     master.connect(ctx.destination);
@@ -66,6 +88,12 @@ export class EngineClient {
       B: new SharedStateReader(bufferB),
       master: new SharedStateReader(bufferMaster),
     });
+  }
+
+  /** Whether playhead/meter state travels through SharedArrayBuffer (true)
+   * or the MessagePort fallback (false, a frame or so behind). */
+  get crossOriginIsolated(): boolean {
+    return typeof globalThis.crossOriginIsolated === "boolean" && globalThis.crossOriginIsolated;
   }
 
   /** Autoplay policies require this to run from a user gesture. */

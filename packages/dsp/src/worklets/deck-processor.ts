@@ -14,7 +14,7 @@ import { Eq3 } from "../kernels/eq3.js";
 import { FilterKnob } from "../kernels/filter-knob.js";
 import { Meter } from "../kernels/meter.js";
 import { SmoothedValue } from "../kernels/smoothed.js";
-import { SharedStateWriter, F64, F32, I32 } from "../shared-state.js";
+import { SharedStateWriter, SnapshotPoster, isSharedBuffer, F64, F32, I32 } from "../shared-state.js";
 import type { DeckMessage } from "../protocol.js";
 
 /** Largest render quantum we pre-allocate scratch for. */
@@ -35,13 +35,15 @@ class DeckProcessor extends AudioWorkletProcessor {
   private readonly scratchR = new Float32Array(MAX_QUANTUM);
 
   private readonly shared: SharedStateWriter | null;
+  /** Set only when the state buffer isn't truly shared (no COOP/COEP). */
+  private readonly poster: SnapshotPoster | null;
   private playing = false;
   private bpm = 0;
   private lastEnded = false;
 
   constructor(options?: AudioWorkletNodeOptions) {
     super(options);
-    const data = options?.processorOptions as { sharedState?: SharedArrayBuffer };
+    const data = options?.processorOptions as { sharedState?: SharedArrayBuffer | ArrayBuffer };
 
     this.eq = new Eq3(sampleRate);
     this.filter = new FilterKnob(sampleRate);
@@ -53,6 +55,10 @@ class DeckProcessor extends AudioWorkletProcessor {
     this.cueMute = new SmoothedValue(1, sampleRate, 3);
 
     this.shared = data?.sharedState ? new SharedStateWriter(data.sharedState) : null;
+    this.poster =
+      data?.sharedState && !isSharedBuffer(data.sharedState)
+        ? new SnapshotPoster(data.sharedState, this.port)
+        : null;
     if (this.shared) this.shared.setFlag(I32.Empty, true);
 
     this.port.onmessage = (event: MessageEvent<DeckMessage>) => {
@@ -150,6 +156,7 @@ class DeckProcessor extends AudioWorkletProcessor {
 
     this.meter.process(scratchL, frames);
     this.publish();
+    this.poster?.tick();
     return true;
   }
 

@@ -210,3 +210,62 @@ export function emptySnapshot(): DeckSnapshot {
     endedCount: 0,
   };
 }
+
+/**
+ * True when `buffer` is actually shared with the other thread. When the page
+ * isn't cross-origin isolated, `createSharedStateBuffer` hands back a plain
+ * ArrayBuffer, which structured clone *copies* into the worklet — writes on
+ * one side never reach the other, so the MessagePort fallback below has to
+ * carry the state instead.
+ */
+export function isSharedBuffer(buffer: SharedArrayBuffer | ArrayBuffer): boolean {
+  return typeof SharedArrayBuffer !== "undefined" && buffer instanceof SharedArrayBuffer;
+}
+
+export interface StateSnapshotMessage {
+  type: "state";
+  bytes: ArrayBuffer;
+}
+
+/**
+ * Worklet side of the MessagePort fallback: posts a byte copy of the state
+ * block every `everyQuanta` render quanta (~60 Hz at 48 kHz with 6).
+ *
+ * This path allocates (the copy, and structured clone), which the audio
+ * thread otherwise never does. It only runs when SharedArrayBuffer is
+ * unavailable, and a small allocation at 60 Hz is the cost of a UI that
+ * moves at all in that case.
+ */
+export class SnapshotPoster {
+  private countdown = 0;
+
+  constructor(
+    private readonly buffer: SharedArrayBuffer | ArrayBuffer,
+    private readonly port: { postMessage(message: unknown): void },
+    private readonly everyQuanta = 6,
+  ) {}
+
+  tick(): void {
+    if (--this.countdown > 0) return;
+    this.countdown = this.everyQuanta;
+    const message: StateSnapshotMessage = {
+      type: "state",
+      bytes: (this.buffer as ArrayBuffer).slice(0),
+    };
+    this.port.postMessage(message);
+  }
+}
+
+/** Main-thread side: copy a posted snapshot into the reader's buffer. */
+export function applySnapshot(target: SharedArrayBuffer | ArrayBuffer, bytes: ArrayBuffer): void {
+  new Uint8Array(target).set(new Uint8Array(bytes, 0, Math.min(bytes.byteLength, target.byteLength)));
+}
+
+export function isStateSnapshot(data: unknown): data is StateSnapshotMessage {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    (data as { type?: unknown }).type === "state" &&
+    (data as { bytes?: unknown }).bytes instanceof ArrayBuffer
+  );
+}
