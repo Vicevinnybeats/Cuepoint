@@ -64,3 +64,21 @@ body {
 .intro-name {
   animation: intro-name-in 700ms ease-out both;
 }
+
+/* Rotate prompt: rocks the phone icon toward landscape and back, a clearer
+   "turn your phone" cue than a full spin. */
+@keyframes rotate-hint {
+  0%, 15% {
+    transform: rotate(0deg);
+  }
+  45%, 65% {
+    transform: rotate(-90deg);
+  }
+  95%, 100% {
+    transform: rotate(0deg);
+  }
+}
+
+.rotate-hint {
+  animation: rotate-hint 2.4s ease-in-out infinite;
+}

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { RegisterServiceWorker } from "./register-sw";
 import { IntroSplash } from "./intro-splash";
+import { RotatePrompt } from "@/components/RotatePrompt";
 
 export const metadata: Metadata = {
   title: "Cuepoint",
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="overscroll-none">
         <RegisterServiceWorker />
         <IntroSplash />
+        <RotatePrompt />
         {children}
       </body>
     </html>
