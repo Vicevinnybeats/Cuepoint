@@ -5,13 +5,21 @@
  * so this can run entirely client-side) plus fetching Likes/Uploads and
  * downloading a track's audio for import into the local library.
  *
- * Built to SoundCloud's publicly documented API (developers.soundcloud.com)
- * from training knowledge — this sandbox has no network egress to
- * soundcloud.com, so none of the endpoints below have been exercised
- * against a live app. If something 404s, it's almost certainly a stale
- * path or field name here, not a deeper problem; check the current docs
- * for the exact authorize/token URLs and the `/me/likes/tracks` and
- * `/me/tracks` response shape.
+ * Endpoints and schema (authorize/token URLs, /me/likes/tracks, /me/tracks,
+ * /tracks/{track_urn}/streams, the Track object's `urn`) are checked against
+ * SoundCloud's own published OpenAPI spec (github.com/soundcloud/api,
+ * openapi/api.yaml) and their reference sc-api-auth.mjs CLI script — not
+ * exercised against a live app, since this sandbox has no network egress to
+ * soundcloud.com, but the shapes themselves come from SoundCloud's own repo
+ * rather than guesswork.
+ *
+ * One real, confirmed limitation from that spec: the public API only
+ * offers full tracks as HLS (`hls_mp3_128_url` / `hls_aac_160_url`) — the
+ * old flat `stream_url` field is deprecated and preview-only. There's no
+ * single progressive-MP3 URL to just fetch and decode, so `downloadTrackAudio`
+ * fetches the HLS media playlist and concatenates its MP3 segments into one
+ * Blob (MP3 is frame-based and tolerates this) rather than doing a real HLS
+ * demux — good enough for import, not a general HLS player.
  *
  * Only works in the web/PWA build: OAuth requires a real HTTPS redirect
  * URI, which the Electron desktop build (served from a local file server)
@@ -154,28 +162,19 @@ async function authedFetch(path: string): Promise<Response> {
 }
 
 export interface SoundCloudTrack {
-  id: number;
+  /** e.g. "soundcloud:tracks:308946187" — the public API's only identifier
+   * for a track; there's no plain numeric id in the current schema. */
+  urn: string;
   title: string;
-  /** The transcoding URL to resolve for a decodable (progressive, not HLS)
-   * stream, or null when the track only offers HLS — Cuepoint's import
-   * path uses decodeAudioData on a whole file, not a segmented stream. */
-  transcodingUrl: string | null;
-}
-
-interface RawTranscoding {
-  url?: string;
-  format?: { protocol?: string };
 }
 
 interface RawTrack {
-  id: number;
+  urn: string;
   title: string;
-  media?: { transcodings?: RawTranscoding[] };
 }
 
 function toSoundCloudTrack(raw: RawTrack): SoundCloudTrack {
-  const progressive = raw.media?.transcodings?.find((t) => t.format?.protocol === "progressive");
-  return { id: raw.id, title: raw.title, transcodingUrl: progressive?.url ?? null };
+  return { urn: raw.urn, title: raw.title };
 }
 
 export async function fetchLikes(): Promise<SoundCloudTrack[]> {
@@ -194,22 +193,56 @@ export async function fetchUploads(): Promise<SoundCloudTrack[]> {
   return items.map(toSoundCloudTrack);
 }
 
-/** Resolves a track's transcoding to its signed CDN URL and downloads the
- * audio. Throws if the track only has an HLS transcoding. */
-export async function downloadTrackAudio(track: SoundCloudTrack): Promise<Blob> {
-  if (!track.transcodingUrl) {
-    throw new Error("This track only offers an HLS stream, which Cuepoint can't import yet.");
+interface StreamsResponse {
+  hls_mp3_128_url?: string;
+  hls_aac_160_url?: string;
+  preview_mp3_128_url?: string;
+}
+
+/** Fetches an HLS media playlist and concatenates its segments into one
+ * Blob. Not a real HLS demux (no bitrate switching, no discontinuity
+ * handling) — just enough to turn "one track, one quality" into a file
+ * decodeAudioData can read. MP3 is frame-based and tolerates being
+ * concatenated like this; this would need real demuxing for AAC/TS segments. */
+async function concatenateHlsSegments(playlistUrl: string, accessToken: string): Promise<Blob> {
+  const playlistRes = await fetch(playlistUrl, {
+    headers: { Authorization: `OAuth ${accessToken}` },
+  });
+  if (!playlistRes.ok) throw new Error(`Could not fetch the HLS playlist (${playlistRes.status})`);
+  const playlistText = await playlistRes.text();
+  const base = new URL(playlistRes.url);
+  const segmentUrls = playlistText
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith("#"))
+    .map((line) => new URL(line, base).toString());
+  if (segmentUrls.length === 0) throw new Error("The HLS playlist had no segments.");
+
+  const parts: Blob[] = [];
+  for (const url of segmentUrls) {
+    const segmentRes = await fetch(url);
+    if (!segmentRes.ok) throw new Error(`Could not fetch an HLS segment (${segmentRes.status})`);
+    parts.push(await segmentRes.blob());
   }
+  return new Blob(parts, { type: "audio/mpeg" });
+}
+
+/** Downloads a track's full audio via its HLS stream (see module docs —
+ * the public API doesn't offer a plain progressive URL for full tracks). */
+export async function downloadTrackAudio(track: SoundCloudTrack): Promise<Blob> {
   const token = getToken();
   if (!token) throw new Error("Not connected to SoundCloud.");
 
-  const resolveRes = await fetch(track.transcodingUrl, {
-    headers: { Authorization: `OAuth ${token.accessToken}` },
-  });
-  if (!resolveRes.ok) throw new Error(`Could not resolve the stream (${resolveRes.status})`);
-  const { url } = (await resolveRes.json()) as { url: string };
+  const streamsRes = await authedFetch(`/tracks/${encodeURIComponent(track.urn)}/streams`);
+  if (!streamsRes.ok) throw new Error(`Could not get this track's stream (${streamsRes.status})`);
+  const streams = (await streamsRes.json()) as StreamsResponse;
+  const playlistUrl = streams.hls_mp3_128_url ?? streams.hls_aac_160_url;
+  if (!playlistUrl) {
+    throw new Error("SoundCloud didn't return a playable stream for this track.");
+  }
+  if (!streams.hls_mp3_128_url) {
+    throw new Error("This track only offers an AAC stream, which Cuepoint can't import yet.");
+  }
 
-  const audioRes = await fetch(url);
-  if (!audioRes.ok) throw new Error(`Could not download the audio (${audioRes.status})`);
-  return audioRes.blob();
+  return concatenateHlsSegments(playlistUrl, token.accessToken);
 }

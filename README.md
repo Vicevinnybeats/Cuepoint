@@ -186,13 +186,21 @@ These need your accounts or your hands; everything else is done.
    now the live site deploys from `claude/clever-dijkstra-ij3g5v`; after
    merging, check Vercel → cuepoint → Settings → Git → Production Branch is
    `main`.
-5. **SoundCloud import** (optional) — SoundCloud stopped issuing new API
-   `client_id`s publicly; request one at soundcloud.com/you/apps (not
-   guaranteed or instant). Paste it into the SoundCloud panel (Tracklist →
-   SoundCloud) and hit Connect. **Caveat**: the OAuth + Likes/Uploads/import
-   code (`apps/web/lib/soundcloud.ts`) was written to SoundCloud's public
-   docs but has not been exercised against a live app — this sandbox has no
-   network path to soundcloud.com to test it. Smoke-test it once you have a
-   real Client ID; if a call 404s, it's almost certainly a stale endpoint
-   path or field name, not a deeper problem. Web app only — the Electron
-   desktop build can't receive an OAuth redirect.
+5. **SoundCloud import** (optional) — sign in and register an app at
+   soundcloud.com/you/apps to get a Client ID (usually free and instant; a
+   small number of accounts get asked for an Artist Pro subscription). Set
+   that app's Redirect URI to `<your-deployment-url>/soundcloud-callback`
+   (the SoundCloud panel shows the exact value for wherever it's running).
+   Paste the Client ID into the SoundCloud panel (Tracklist → SoundCloud)
+   and hit Connect. **Caveat**: the OAuth + Likes/Uploads/import code
+   (`apps/web/lib/soundcloud.ts`) is checked against SoundCloud's own
+   published OpenAPI spec and reference CLI (github.com/soundcloud/api) —
+   real endpoint paths and schema, not guesswork — but still hasn't been
+   exercised against a live app, since this sandbox has no network path to
+   soundcloud.com to test it. Smoke-test it once you have a real Client ID.
+   Full tracks are only offered as HLS by the public API (no plain
+   progressive-MP3 URL), so import fetches the HLS media playlist and
+   concatenates its MP3 segments into one file rather than doing a real HLS
+   demux — works for MP3 HLS tracks, throws a clear error for AAC-only
+   ones. Web app only — the Electron desktop build can't receive an OAuth
+   redirect.

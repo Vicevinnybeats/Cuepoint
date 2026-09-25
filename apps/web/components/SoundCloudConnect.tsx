@@ -18,13 +18,6 @@ import { cx } from "@/lib/cx";
 
 type Status = "disconnected" | "connecting" | "connected" | "error";
 
-const STEPS = [
-  "SoundCloud isn't issuing new API keys publicly anymore — request a Client ID at soundcloud.com/you/apps (approval isn't guaranteed or instant).",
-  "Once you have one, paste it below.",
-  "Connect — you'll approve access to your likes and uploads on SoundCloud's own page.",
-  "Import any track straight into your Cuepoint library.",
-];
-
 /** Connect button + status indicator + step explainer, and — once
  * connected — a browser for the account's likes/uploads with an Import
  * button per track. See lib/soundcloud.ts for the important caveat: this
@@ -37,7 +30,7 @@ export function SoundCloudConnect() {
   const [tab, setTab] = useState<"likes" | "uploads">("likes");
   const [tracks, setTracks] = useState<SoundCloudTrack[]>([]);
   const [loadingTracks, setLoadingTracks] = useState(false);
-  const [importingId, setImportingId] = useState<number | null>(null);
+  const [importingUrn, setImportingUrn] = useState<string | null>(null);
 
   const { engine, connect, analyzeTrack } = useEngine();
 
@@ -82,7 +75,7 @@ export function SoundCloudConnect() {
 
   const handleImport = useCallback(
     async (track: SoundCloudTrack) => {
-      setImportingId(track.id);
+      setImportingUrn(track.urn);
       setError(null);
       try {
         const audioBlob = await downloadTrackAudio(track);
@@ -91,7 +84,7 @@ export function SoundCloudConnect() {
         const decoded = await client.decode(buffer);
         const { bpm, key, peaks } = await analyzeTrack(decoded.getChannelData(0), decoded.sampleRate);
         await db.tracks.put({
-          id: `soundcloud-${track.id}`,
+          id: track.urn,
           title: track.title,
           artist: "SoundCloud",
           bpm,
@@ -107,11 +100,13 @@ export function SoundCloudConnect() {
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
-        setImportingId(null);
+        setImportingUrn(null);
       }
     },
     [analyzeTrack, connect, engine],
   );
+
+  const redirectUri = typeof window !== "undefined" ? `${window.location.origin}/soundcloud-callback` : "";
 
   const indicatorClass =
     status === "connected"
@@ -162,19 +157,22 @@ export function SoundCloudConnect() {
             {status !== "connected" ? (
               <div className="flex flex-col gap-3">
                 <ol className="flex flex-col gap-2 pl-4 text-xs text-neutral-400">
-                  {STEPS.map((step, i) => (
-                    <li key={step} className="list-decimal">
-                      {i === 0 ? (
-                        <>
-                          SoundCloud isn&apos;t issuing new API keys publicly anymore — request a
-                          Client ID at <span className="text-amber">soundcloud.com/you/apps</span>{" "}
-                          (approval isn&apos;t guaranteed or instant).
-                        </>
-                      ) : (
-                        step
-                      )}
-                    </li>
-                  ))}
+                  <li className="list-decimal">
+                    Get a Client ID — sign in and register an app at{" "}
+                    <span className="text-amber">soundcloud.com/you/apps</span>. Usually free and
+                    instant; a small number of accounts get asked for an Artist Pro subscription.
+                  </li>
+                  <li className="list-decimal">
+                    On that same page, set the app&apos;s <strong>Redirect URI</strong> to exactly:
+                    <br />
+                    <code className="break-all text-amber">{redirectUri}</code>
+                  </li>
+                  <li className="list-decimal">Paste the Client ID below.</li>
+                  <li className="list-decimal">
+                    Connect — you&apos;ll approve access to your likes and uploads on
+                    SoundCloud&apos;s own page.
+                  </li>
+                  <li className="list-decimal">Import any track straight into your Cuepoint library.</li>
                 </ol>
                 <input
                   value={clientIdInput}
@@ -233,22 +231,18 @@ export function SoundCloudConnect() {
                   <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
                     {tracks.map((t) => (
                       <div
-                        key={t.id}
+                        key={t.urn}
                         className="flex items-center justify-between gap-2 rounded-md bg-panel-sunken px-2 py-1"
                       >
                         <span className="min-w-0 flex-1 truncate text-xs text-neutral-200">{t.title}</span>
                         <button
                           type="button"
-                          disabled={importingId === t.id || !t.transcodingUrl}
+                          disabled={importingUrn === t.urn}
                           onClick={() => void handleImport(t)}
                           className="min-h-8 shrink-0 rounded-sm border border-deck-border px-2.5 text-[10px] font-bold uppercase text-neutral-300 disabled:opacity-30"
-                          title={
-                            !t.transcodingUrl
-                              ? "This track only has an HLS stream, which isn't supported yet"
-                              : "Import into your library"
-                          }
+                          title="Import into your library"
                         >
-                          {importingId === t.id ? "…" : "Import"}
+                          {importingUrn === t.urn ? "…" : "Import"}
                         </button>
                       </div>
                     ))}
