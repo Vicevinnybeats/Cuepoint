@@ -31,6 +31,10 @@ export function SoundCloudConnect() {
   const [tracks, setTracks] = useState<SoundCloudTrack[]>([]);
   const [loadingTracks, setLoadingTracks] = useState(false);
   const [importingUrn, setImportingUrn] = useState<string | null>(null);
+  const [importedUrns, setImportedUrns] = useState<Set<string>>(new Set());
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number; failed: number } | null>(
+    null,
+  );
 
   const { engine, connect, analyzeTrack } = useEngine();
 
@@ -55,6 +59,7 @@ export function SoundCloudConnect() {
     disconnect();
     setStatus("disconnected");
     setTracks([]);
+    setImportedUrns(new Set());
   }, []);
 
   const loadList = useCallback(async (which: "likes" | "uploads") => {
@@ -73,38 +78,80 @@ export function SoundCloudConnect() {
     if (open && status === "connected") void loadList(tab);
   }, [open, status, tab, loadList]);
 
+  /** Downloads and saves one track, without touching per-track UI state —
+   * the two callers (single Import click, bulk Import All) each track
+   * progress their own way. Throws on failure; callers decide what that
+   * means for them. */
+  const importOne = useCallback(
+    async (track: SoundCloudTrack) => {
+      const audioBlob = await downloadTrackAudio(track);
+      const client = engine ?? (await connect());
+      const buffer = await audioBlob.arrayBuffer();
+      const decoded = await client.decode(buffer);
+      const { bpm, key, peaks } = await analyzeTrack(decoded.getChannelData(0), decoded.sampleRate);
+      await db.tracks.put({
+        id: track.urn,
+        title: track.title,
+        artist: "SoundCloud",
+        bpm,
+        key,
+        durationSeconds: decoded.duration,
+        waveform: peaks,
+        audio: audioBlob,
+        cues: [],
+        mainCue: 0,
+        addedAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    },
+    [analyzeTrack, connect, engine],
+  );
+
   const handleImport = useCallback(
     async (track: SoundCloudTrack) => {
       setImportingUrn(track.urn);
       setError(null);
       try {
-        const audioBlob = await downloadTrackAudio(track);
-        const client = engine ?? (await connect());
-        const buffer = await audioBlob.arrayBuffer();
-        const decoded = await client.decode(buffer);
-        const { bpm, key, peaks } = await analyzeTrack(decoded.getChannelData(0), decoded.sampleRate);
-        await db.tracks.put({
-          id: track.urn,
-          title: track.title,
-          artist: "SoundCloud",
-          bpm,
-          key,
-          durationSeconds: decoded.duration,
-          waveform: peaks,
-          audio: audioBlob,
-          cues: [],
-          mainCue: 0,
-          addedAt: Date.now(),
-          updatedAt: Date.now(),
-        });
+        await importOne(track);
+        setImportedUrns((prev) => new Set(prev).add(track.urn));
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));
       } finally {
         setImportingUrn(null);
       }
     },
-    [analyzeTrack, connect, engine],
+    [importOne],
   );
+
+  /** Imports every not-yet-imported track in the current list, one at a
+   * time (the engine has a single AudioContext to decode through) rather
+   * than requiring a click per track. Keeps going past individual failures
+   * so one broken track doesn't stop the rest of the list. */
+  const handleImportAll = useCallback(async () => {
+    const pending = tracks.filter((t) => !importedUrns.has(t.urn));
+    if (pending.length === 0) return;
+    setError(null);
+    let done = 0;
+    let failed = 0;
+    setBulkProgress({ done, total: pending.length, failed });
+    for (const track of pending) {
+      setImportingUrn(track.urn);
+      try {
+        await importOne(track);
+        setImportedUrns((prev) => new Set(prev).add(track.urn));
+      } catch (e) {
+        failed += 1;
+        console.error(`SoundCloud import failed for "${track.title}":`, e);
+      }
+      done += 1;
+      setBulkProgress({ done, total: pending.length, failed });
+    }
+    setImportingUrn(null);
+    if (failed > 0) {
+      setError(`Imported ${pending.length - failed}/${pending.length} — ${failed} failed (see console).`);
+    }
+    setBulkProgress(null);
+  }, [tracks, importedUrns, importOne]);
 
   const redirectUri = typeof window !== "undefined" ? `${window.location.origin}/soundcloud-callback` : "";
 
@@ -228,25 +275,49 @@ export function SoundCloudConnect() {
                 ) : tracks.length === 0 ? (
                   <p className="py-2 text-center text-xs text-neutral-600">No tracks found.</p>
                 ) : (
-                  <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
-                    {tracks.map((t) => (
-                      <div
-                        key={t.urn}
-                        className="flex items-center justify-between gap-2 rounded-md bg-panel-sunken px-2 py-1"
+                  <>
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        disabled={
+                          bulkProgress !== null ||
+                          importingUrn !== null ||
+                          tracks.every((t) => importedUrns.has(t.urn))
+                        }
+                        onClick={() => void handleImportAll()}
+                        className="min-h-8 rounded-sm border border-deck-border bg-panel-raised px-2.5 text-[10px] font-bold uppercase text-neutral-300 disabled:opacity-30"
                       >
-                        <span className="min-w-0 flex-1 truncate text-xs text-neutral-200">{t.title}</span>
-                        <button
-                          type="button"
-                          disabled={importingUrn === t.urn}
-                          onClick={() => void handleImport(t)}
-                          className="min-h-8 shrink-0 rounded-sm border border-deck-border px-2.5 text-[10px] font-bold uppercase text-neutral-300 disabled:opacity-30"
-                          title="Import into your library"
-                        >
-                          {importingUrn === t.urn ? "…" : "Import"}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                        {bulkProgress
+                          ? `Importing ${bulkProgress.done}/${bulkProgress.total}…`
+                          : "Import all"}
+                      </button>
+                      <span className="text-[10px] text-neutral-600">
+                        {importedUrns.size > 0 && `${importedUrns.size} imported`}
+                      </span>
+                    </div>
+                    <div className="flex max-h-56 flex-col gap-1 overflow-y-auto">
+                      {tracks.map((t) => {
+                        const imported = importedUrns.has(t.urn);
+                        return (
+                          <div
+                            key={t.urn}
+                            className="flex items-center justify-between gap-2 rounded-md bg-panel-sunken px-2 py-1"
+                          >
+                            <span className="min-w-0 flex-1 truncate text-xs text-neutral-200">{t.title}</span>
+                            <button
+                              type="button"
+                              disabled={imported || importingUrn === t.urn}
+                              onClick={() => void handleImport(t)}
+                              className="min-h-8 shrink-0 rounded-sm border border-deck-border px-2.5 text-[10px] font-bold uppercase text-neutral-300 disabled:opacity-30"
+                              title={imported ? "Already imported" : "Import into your library"}
+                            >
+                              {importingUrn === t.urn ? "…" : imported ? "Imported" : "Import"}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
               </div>
             )}
