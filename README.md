@@ -136,7 +136,9 @@ unless run against a live Worker).
 - **Library** (`packages/library`, 15 tests) — IndexedDB. Audio, analysis,
   cue points and hot cues persist across reloads; playlists with reorder.
   A desktop-only **Tracklist** button (header) opens it in a modal instead
-  of it sitting inline.
+  of it sitting inline. A **SoundCloud** connect button lives in that same
+  panel — see **Manual steps** for the real caveat (needs your own API
+  Client ID, and the integration hasn't been tested against a live account).
 - **Sync** (`packages/sync` + `apps/sync-worker`, 13 tests) — see above.
   Verified against the live D1 database and end to end under
   `wrangler dev --local`, including 2,500-record paging.
@@ -184,3 +186,13 @@ These need your accounts or your hands; everything else is done.
    now the live site deploys from `claude/clever-dijkstra-ij3g5v`; after
    merging, check Vercel → cuepoint → Settings → Git → Production Branch is
    `main`.
+5. **SoundCloud import** (optional) — SoundCloud stopped issuing new API
+   `client_id`s publicly; request one at soundcloud.com/you/apps (not
+   guaranteed or instant). Paste it into the SoundCloud panel (Tracklist →
+   SoundCloud) and hit Connect. **Caveat**: the OAuth + Likes/Uploads/import
+   code (`apps/web/lib/soundcloud.ts`) was written to SoundCloud's public
+   docs but has not been exercised against a live app — this sandbox has no
+   network path to soundcloud.com to test it. Smoke-test it once you have a
+   real Client ID; if a call 404s, it's almost certainly a stale endpoint
+   path or field name, not a deeper problem. Web app only — the Electron
+   desktop build can't receive an OAuth redirect.

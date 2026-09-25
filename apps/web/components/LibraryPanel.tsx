@@ -18,6 +18,7 @@ import { decksStore, DECK_IDS } from "@cuepoint/engine";
 import type { DeckId } from "@cuepoint/engine";
 import { useEngine } from "@/lib/engine-provider";
 import { useLiveQuery } from "@/hooks/useLiveQuery";
+import { SoundCloudConnect } from "./SoundCloudConnect";
 
 const ALL = "__all__";
 const BUTTON =
@@ -87,6 +88,7 @@ export function LibraryPanel() {
 
   return (
     <div className="panel-surface flex flex-col gap-2 rounded-xl border border-deck-border p-3 text-[11px]">
+      <SoundCloudConnect />
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-bold tracking-widest text-neutral-400">LIBRARY</span>
         <select
