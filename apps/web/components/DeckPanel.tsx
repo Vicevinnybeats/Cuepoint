@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useStore } from "zustand/react";
 import {
   decksStore,
@@ -27,6 +27,11 @@ import { cx } from "@/lib/cx";
 
 const HOT_CUE_COLORS = ["#ff5a3c", "#ffb020", "#35d07f", "#4aa8ff"];
 
+/** Positive modulo (JS's `%` can return negative) — used to find where a
+ * playhead sits within a beat, regardless of which side of the cue point
+ * it's on. */
+const mod = (n: number, m: number) => ((n % m) + m) % m;
+
 /** Sync's tempo-match partner: A<->B and C<->D, the two mixing pairs a
  * 4-channel setup is normally used as. */
 const SYNC_PARTNER: Record<DeckId, DeckId> = { A: "B", B: "A", C: "D", D: "C" };
@@ -36,6 +41,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
   const otherDeck: DeckId = SYNC_PARTNER[deck];
   const { engine, connect, analyzeTrack } = useEngine();
   const state = useStore(decksStore, (s) => s.decks[deck]);
+  const otherState = useStore(decksStore, (s) => s.decks[otherDeck]);
   const setTempo = useStore(decksStore, (s) => s.setTempo);
   const toggleSync = useStore(decksStore, (s) => s.toggleSync);
   const setCue = useStore(decksStore, (s) => s.setCue);
@@ -205,7 +211,53 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
     setTempo(deck, percent);
     const client = engine ?? (await connect());
     client.setRate(deck, 1 + percent / 100);
-  }, [connect, deck, engine, otherDeck, setTempo, state, toggleSync]);
+
+    // Matching tempo isn't enough for a tight sync — also snap this deck's
+    // beat phase (its position within a beat, relative to its own cue
+    // point) to match the partner's, so the two don't just share a BPM but
+    // land on the beat together. The cue point stands in for a downbeat,
+    // same assumption a DJ makes by cueing on one.
+    const beatFrames = targetBpm > 0 ? (60 / targetBpm) * client.sampleRate : 0;
+    if (beatFrames > 0) {
+      const ownSnapshot = emptySnapshot();
+      client.reader(deck).read(ownSnapshot);
+      const otherSnapshot = emptySnapshot();
+      client.reader(otherDeck).read(otherSnapshot);
+
+      const ownPhase = mod(ownSnapshot.playheadFrames - state.cuePoint, beatFrames);
+      const otherPhase = mod(otherSnapshot.playheadFrames - other.cuePoint, beatFrames);
+      let delta = otherPhase - ownPhase;
+      if (delta > beatFrames / 2) delta -= beatFrames;
+      if (delta < -beatFrames / 2) delta += beatFrames;
+
+      exitLoopIfActive(client);
+      client.seek(deck, Math.max(0, ownSnapshot.playheadFrames + delta));
+    }
+  }, [connect, deck, engine, exitLoopIfActive, otherDeck, setTempo, state, toggleSync]);
+
+  // While sync stays enabled, keep following the partner deck live — if its
+  // tempo fader moves (or its own sync re-locks it to something else), this
+  // deck's rate tracks that change immediately rather than only matching
+  // once at the moment Sync was pressed.
+  useEffect(() => {
+    if (!state.syncEnabled || !state.track || !otherState.track) return;
+    const ownRate = 1 + state.tempoPercent / 100;
+    const targetBpm = otherState.track.bpm * (1 + otherState.tempoPercent / 100);
+    const rate = syncRate(targetBpm, state.track.bpm, ownRate);
+    const percent = clampTempoPercent(ratioToTempoPercent(rate));
+    if (Math.abs(percent - state.tempoPercent) < 0.001) return;
+    setTempo(deck, percent);
+    engine?.setRate(deck, 1 + percent / 100);
+  }, [
+    deck,
+    engine,
+    otherState.track,
+    otherState.tempoPercent,
+    setTempo,
+    state.syncEnabled,
+    state.tempoPercent,
+    state.track,
+  ]);
 
   // A BPM control, not a pitch control: it retimes the deck (see
   // TimeStretcher / DeckMessage's "rate") without shifting pitch.
@@ -322,11 +374,20 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         peaks={state.track?.waveform ?? null}
         markers={waveformMarkers}
         onSeek={(position) => void handleSeek(position)}
-        height={compact ? 10 : 48}
+        height={compact ? 12 : 64}
       />
 
-      <div className="flex items-center justify-center py-1 landscape:py-0">
+      {/* Pitch fader sits right beside the platter, like a real
+          turntable/CDJ, instead of being buried at the bottom of the panel. */}
+      <div className="flex items-center justify-center gap-3 py-1 landscape:gap-1 landscape:py-0">
         <JogWheel deck={deck} />
+        <Slider
+          value={state.tempoPercent / TEMPO_RANGE_PERCENT}
+          onChange={handleTempo}
+          bipolar
+          height={compact ? 16 : 220}
+          label={state.track ? `${(state.track.bpm * (1 + state.tempoPercent / 100)).toFixed(1)} BPM` : "BPM"}
+        />
       </div>
 
       <div className="flex flex-col gap-1 landscape:gap-0.5">
@@ -414,7 +475,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         </button>
       </div>
 
-      <div className="flex items-center justify-between gap-4 landscape:gap-1">
+      <div className="flex items-center justify-center">
         <button
           type="button"
           className="rounded-md border border-deck-border bg-panel-raised px-3 py-2 text-[11px] font-semibold uppercase leading-none text-neutral-300 disabled:opacity-50 landscape:px-1 landscape:py-0.5 landscape:text-[7px] lg:landscape:px-3 lg:landscape:py-2 lg:landscape:text-[11px]"
@@ -429,13 +490,6 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
           accept="audio/*"
           className="hidden"
           onChange={(e) => void handleFile(e)}
-        />
-        <Slider
-          value={state.tempoPercent / TEMPO_RANGE_PERCENT}
-          onChange={handleTempo}
-          bipolar
-          height={compact ? 16 : 90}
-          label={state.track ? `${(state.track.bpm * (1 + state.tempoPercent / 100)).toFixed(1)} BPM` : "BPM"}
         />
       </div>
     </div>

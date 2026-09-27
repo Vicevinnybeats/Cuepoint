@@ -7,6 +7,8 @@ import type { DeckId } from "@cuepoint/engine";
 import type { CrossfaderAssign } from "@cuepoint/dsp/kernels";
 import { useEngine } from "@/lib/engine-provider";
 import { useCompactLayout } from "@/hooks/useCompactLayout";
+import { useWideDesktop } from "@/hooks/useWideDesktop";
+import { usePhonePortrait } from "@/hooks/usePhonePortrait";
 import { Knob } from "./Knob";
 import { Slider } from "./Slider";
 import { LevelMeter } from "./LevelMeter";
@@ -23,6 +25,8 @@ const ASSIGNS: Array<{ id: CrossfaderAssign; label: string }> = [
 
 export function MixerChannel({ deck }: { deck: DeckId }) {
   const compact = useCompactLayout();
+  const wide = useWideDesktop();
+  const portrait = usePhonePortrait();
   const { engine } = useEngine();
   const state = useStore(decksStore, (s) => s.decks[deck]);
   const assign = useStore(decksStore, (s) => s.mixer.crossfaderAssign[deck]);
@@ -76,10 +80,22 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
 
   const assignIndex = ASSIGNS.findIndex((a) => a.id === assign);
 
-  const knobSize = compact ? 20 : 44;
+  const knobSize = compact ? 20 : wide ? 76 : 56;
+  // Only the grid layout (landscape phone or desktop, at any width >=1024)
+  // gives this column a stretched, definite height to grow into next to
+  // the (usually taller) deck panels — on the stacked portrait layout
+  // there's no such ancestor, so the fader stays a fixed size there too,
+  // same as the phone-landscape strip.
+  const canFillHeight = !compact && !portrait;
+  const faderHeight: number | string = compact ? 46 : canFillHeight ? "100%" : 176;
 
   return (
-    <div className="panel-surface flex flex-col items-center gap-3 rounded-xl border border-deck-border p-3 shadow-panel landscape:gap-0.5 landscape:p-1 lg:landscape:gap-3 lg:landscape:p-3 lg:gap-3 lg:p-3">
+    <div
+      className={cx(
+        "panel-surface flex flex-col items-center gap-3 rounded-xl border border-deck-border p-4 shadow-panel landscape:gap-0.5 landscape:p-1 lg:landscape:gap-3 lg:landscape:p-4 lg:gap-4 lg:p-4 2xl:landscape:gap-5 2xl:landscape:p-5",
+        canFillHeight && "h-full",
+      )}
+    >
       <span className="text-xs font-bold tracking-widest text-neutral-400 landscape:text-[9px] lg:landscape:text-xs">
         {deck}
       </span>
@@ -103,12 +119,17 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
         accent="text-accent"
         size={knobSize}
       />
-      <div className="flex items-end gap-2 landscape:gap-0.5 lg:landscape:gap-2">
-        <LevelMeter target={deck} height={compact ? 46 : 140} />
+      <div
+        className={cx(
+          "flex items-end gap-2 landscape:gap-0.5 lg:landscape:gap-2",
+          canFillHeight && "min-h-0 flex-1 items-stretch",
+        )}
+      >
+        <LevelMeter target={deck} height={faderHeight} />
         <Slider
           value={state.faderLevel}
           onChange={handleFader}
-          height={compact ? 46 : 140}
+          height={faderHeight}
           label="Level"
           resetValue={1}
           ticks={10}

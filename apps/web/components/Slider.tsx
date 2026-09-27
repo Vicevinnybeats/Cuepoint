@@ -1,13 +1,16 @@
 "use client";
 
 import { useCallback, useRef } from "react";
+import { cx } from "@/lib/cx";
 
 interface SliderProps {
   /** 0..1 for a unipolar fader (channel level), or -1..1 when `bipolar`. */
   value: number;
   onChange: (value: number) => void;
   bipolar?: boolean;
-  height?: number;
+  /** A pixel number, or a CSS length like "100%" to fill a flex/grid
+   * ancestor that already has a definite height (e.g. a `flex-1` row). */
+  height?: number | string;
   label?: string;
   /** Value a double-click resets to. Defaults to the slider's own centre
    * (0 bipolar, 0.5 unipolar) — override when the caller's value mapping
@@ -63,13 +66,20 @@ export function Slider({
 
   const t = bipolar ? (value + 1) / 2 : value;
   const thumbTopPercent = (1 - t) * 100;
+  // "100%" means "fill whatever height my wrapper stretched to" — growing
+  // via flex, rather than an actual 100% length, is what reliably fills a
+  // flex-row ancestor's stretched cross-axis size.
+  const fill = height === "100%";
 
   return (
     <div className="flex flex-col items-center gap-1">
       <div
         ref={trackRef}
-        className="control-surface relative w-9 cursor-ns-resize rounded-md border border-deck-border bg-panel-sunken"
-        style={{ height }}
+        className={cx(
+          "control-surface relative w-9 cursor-ns-resize rounded-md border border-deck-border bg-panel-sunken",
+          fill && "flex-1",
+        )}
+        style={fill ? undefined : { height }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onDoubleClick={handleDoubleClick}

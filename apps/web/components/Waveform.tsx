@@ -54,16 +54,28 @@ export function Waveform({
     el.style.left = `${Math.min(Math.max(percent, 0), 100)}%`;
   });
 
+  const seekFromClientX = (el: HTMLElement, clientX: number) => {
+    if (!onSeek || !peaks) return;
+    const rect = el.getBoundingClientRect();
+    onSeek(Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1));
+  };
+
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-md border border-deck-border bg-panel-sunken ${
-        onSeek && peaks ? "cursor-pointer" : ""
+      className={`relative w-full touch-none overflow-hidden rounded-md border border-deck-border bg-panel-sunken ${
+        onSeek && peaks ? "cursor-ew-resize" : ""
       }`}
       style={{ height }}
       onPointerDown={(e) => {
         if (!onSeek || !peaks) return;
-        const rect = e.currentTarget.getBoundingClientRect();
-        onSeek(Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1));
+        e.currentTarget.setPointerCapture(e.pointerId);
+        seekFromClientX(e.currentTarget, e.clientX);
+      }}
+      onPointerMove={(e) => {
+        // A held (captured) pointer keeps reporting moves even off the
+        // element — that's what makes this a slide, not just a tap.
+        if (e.buttons === 0) return;
+        seekFromClientX(e.currentTarget, e.clientX);
       }}
     >
       <canvas ref={canvasRef} width={300} height={height} className="h-full w-full" />

@@ -4,7 +4,15 @@ import { useRef } from "react";
 import { useDeckFrame } from "@/hooks/useDeckFrame";
 import type { DeckId } from "@cuepoint/engine";
 
-export function LevelMeter({ target, height = 160 }: { target: DeckId | "master"; height?: number }) {
+export function LevelMeter({
+  target,
+  height = 160,
+}: {
+  target: DeckId | "master";
+  /** A pixel number, or a CSS length like "100%" to fill a flex/grid
+   * ancestor that already has a definite height (e.g. a `flex-1` row). */
+  height?: number | string;
+}) {
   const fillRef = useRef<HTMLDivElement | null>(null);
   const clipRef = useRef<HTMLDivElement | null>(null);
 
@@ -14,10 +22,14 @@ export function LevelMeter({ target, height = 160 }: { target: DeckId | "master"
     if (clipRef.current) clipRef.current.style.opacity = snapshot.clipping ? "1" : "0";
   });
 
+  // "100%" means "fill whatever height the flex row around me already
+  // stretched to" — an explicit 100% can fail to resolve in that case, so
+  // this leaves height unset and lets the row's default cross-axis stretch
+  // size it instead.
   return (
     <div
       className="relative w-3 overflow-hidden rounded-sm border border-deck-border bg-panel-sunken"
-      style={{ height }}
+      style={height === "100%" ? undefined : { height }}
     >
       <div
         ref={fillRef}

@@ -6,6 +6,7 @@ import { CrossfaderPanel } from "@/components/CrossfaderPanel";
 import { LibraryPanel } from "@/components/LibraryPanel";
 import { SyncPanel } from "@/components/SyncPanel";
 import { LibraryModal } from "@/components/LibraryModal";
+import { DeckProgressStrip } from "@/components/DeckProgressStrip";
 import { FitToViewport } from "@/components/FitToViewport";
 
 export default function Page() {
@@ -19,6 +20,15 @@ export default function Page() {
           </span>
           <LibraryModal />
         </header>
+
+        {/* Progress across all 4 decks at a glance, always in A-through-D
+            order regardless of how they're paired up in the grid below.
+            Shown wherever the header above is (portrait phone, and desktop
+            landscape) — dropped only on landscape phone, which is already
+            too tight for anything beyond the decks/mixer themselves. */}
+        <div className="px-1 landscape:hidden lg:landscape:block">
+          <DeckProgressStrip />
+        </div>
 
         {/* Portrait phone: everything stacks top to bottom in one column —
             a wide row of mixer panels does not fit a narrow screen. Groups
@@ -39,7 +49,13 @@ export default function Page() {
             independent of `lg:`'s width breakpoint, so a phone rotated
             sideways gets this even though it's narrower than lg. */}
         <FitToViewport>
-          <div className="flex flex-col gap-3 landscape:grid landscape:grid-cols-[1fr_auto_auto_auto_1fr] landscape:items-start landscape:gap-1 lg:landscape:gap-3 lg:grid lg:grid-cols-[1fr_auto_auto_auto_1fr] lg:items-start lg:gap-3">
+          {/* No `items-start` here (deliberately) — a grid row's default
+              `stretch` lets the mixer/master columns match the height of
+              the (usually taller) stacked-deck columns beside them, instead
+              of sitting at their own natural size with dead space below.
+              MixerChannel and CrossfaderPanel then grow into that stretched
+              height themselves (see MixerChannel's canFillHeight). */}
+          <div className="flex flex-col gap-3 landscape:grid landscape:grid-cols-[1fr_auto_auto_auto_1fr] landscape:gap-1 lg:landscape:gap-3 lg:grid lg:grid-cols-[1fr_auto_auto_auto_1fr] lg:gap-3">
             <div className="flex flex-col gap-3 landscape:gap-1 lg:landscape:gap-3 lg:gap-3">
               <DeckPanel deck="A" />
               <DeckPanel deck="C" />
@@ -50,7 +66,7 @@ export default function Page() {
               <MixerChannel deck="C" />
             </div>
 
-            <div className="flex flex-col gap-3 landscape:gap-1 lg:landscape:gap-3 lg:gap-3">
+            <div className="flex flex-col justify-center gap-3 landscape:gap-1 lg:landscape:gap-3 lg:gap-3">
               <MasterSection />
               <CrossfaderPanel />
             </div>
