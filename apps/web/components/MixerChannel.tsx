@@ -96,7 +96,7 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
         canFillHeight && "h-full",
       )}
     >
-      <span className="text-xs font-bold tracking-widest text-neutral-400 landscape:text-[9px] lg:landscape:text-xs">
+      <span className="text-xs font-bold tracking-widest text-neutral-400 landscape:text-[9px] lg:landscape:text-base 2xl:landscape:text-lg">
         {deck}
       </span>
       <Knob
@@ -141,13 +141,13 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
           Double-click resets it to Thru, the neutral/unassigned position. */}
       <div className="flex flex-col items-center gap-1 landscape:gap-0.5">
         <div
-          className="relative flex h-6 w-24 items-center rounded-full border border-deck-border bg-panel-sunken landscape:h-3 landscape:w-11 lg:landscape:h-6 lg:landscape:w-24"
+          className="relative flex h-6 w-24 items-center rounded-full border border-deck-border bg-panel-sunken landscape:h-3 landscape:w-11 lg:landscape:h-6 lg:landscape:w-24 2xl:landscape:h-7 2xl:landscape:w-28"
           role="group"
           aria-label={`Deck ${deck} crossfader assign`}
           onDoubleClick={() => handleAssign("thru")}
         >
           <div
-            className="pointer-events-none absolute top-0.5 h-5 w-1/3 rounded-full bg-amber shadow-md transition-[left] duration-150 landscape:top-px landscape:h-2 lg:landscape:top-0.5 lg:landscape:h-5"
+            className="pointer-events-none absolute top-0.5 h-5 w-1/3 rounded-full bg-amber shadow-md transition-[left] duration-150 landscape:top-px landscape:h-2 lg:landscape:top-0.5 lg:landscape:h-5 2xl:landscape:h-6"
             style={{ left: `calc(${assignIndex * (100 / 3)}% + 2px)`, width: "calc(33.33% - 4px)" }}
           />
           {ASSIGNS.map(({ id, label }) => (
@@ -156,7 +156,7 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
               type="button"
               onClick={() => handleAssign(id)}
               className={cx(
-                "relative z-10 flex-1 text-[9px] font-bold uppercase landscape:text-[6px] lg:landscape:text-[9px]",
+                "relative z-10 flex-1 text-[9px] font-bold uppercase landscape:text-[6px] lg:landscape:text-xs 2xl:landscape:text-sm",
                 assign === id ? "text-black" : "text-neutral-400",
               )}
               title={`Assign deck ${deck} to the crossfader's ${label} side`}
@@ -165,7 +165,7 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
             </button>
           ))}
         </div>
-        <span className="text-[8px] font-medium uppercase tracking-wide text-neutral-600 landscape:hidden">
+        <span className="text-[8px] font-medium uppercase tracking-wide text-neutral-600 landscape:hidden lg:landscape:block lg:landscape:text-[10px]">
           X-Fader Assign
         </span>
       </div>

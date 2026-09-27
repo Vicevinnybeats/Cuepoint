@@ -30,7 +30,7 @@ export function MasterSection() {
 
   return (
     <div className="panel-surface flex flex-col items-center gap-2 rounded-xl border border-deck-border p-3 shadow-panel landscape:gap-0.5 landscape:p-1 lg:landscape:gap-4 lg:landscape:p-3 lg:gap-4 lg:p-3 2xl:landscape:p-5">
-      <span className="text-xs font-bold tracking-widest text-neutral-400 landscape:text-[9px] lg:landscape:text-xs">
+      <span className="text-xs font-bold tracking-widest text-neutral-400 landscape:text-[9px] lg:landscape:text-base 2xl:landscape:text-lg">
         MASTER
       </span>
       <LevelMeter target="master" height={compact ? 30 : wide ? 180 : 130} />

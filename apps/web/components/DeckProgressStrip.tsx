@@ -30,15 +30,15 @@ function DeckProgressBar({ deck }: { deck: DeckId }) {
 
   return (
     <div className="flex flex-1 items-center gap-1.5">
-      <span className="w-3 shrink-0 text-[9px] font-bold text-neutral-500">{deck}</span>
-      <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-panel-sunken">
+      <span className="w-3 shrink-0 text-[9px] font-bold text-neutral-500 lg:w-4 lg:text-sm">{deck}</span>
+      <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-panel-sunken lg:h-2">
         <div
           ref={barRef}
           className="absolute inset-y-0 left-0 rounded-full transition-[width]"
           style={{ width: "0%", backgroundColor: DECK_COLORS[deck] }}
         />
       </div>
-      {!track && <span className="shrink-0 text-[8px] text-neutral-700">empty</span>}
+      {!track && <span className="shrink-0 text-[8px] text-neutral-700 lg:text-xs">empty</span>}
     </div>
   );
 }
@@ -48,7 +48,7 @@ function DeckProgressBar({ deck }: { deck: DeckId }) {
  * far along all four are relative to each other. */
 export function DeckProgressStrip() {
   return (
-    <div className="flex items-center gap-4 rounded-md border border-deck-border bg-panel-sunken px-3 py-1.5 2xl:landscape:py-2">
+    <div className="flex items-center gap-4 rounded-md border border-deck-border bg-panel-sunken px-3 py-1.5 lg:px-4 lg:py-2.5 2xl:landscape:py-3">
       {DECKS.map((deck) => (
         <DeckProgressBar key={deck} deck={deck} />
       ))}

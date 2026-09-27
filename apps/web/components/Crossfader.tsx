@@ -40,7 +40,7 @@ export function Crossfader({ value, onChange }: { value: number; onChange: (v: n
 
   return (
     <div className="flex w-full flex-col items-center gap-1">
-      <div className="flex w-full justify-between px-1 text-[9px] font-bold text-neutral-500">
+      <div className="flex w-full justify-between px-1 text-[9px] font-bold text-neutral-500 lg:landscape:text-sm 2xl:landscape:text-base">
         <span>A</span>
         <span>B</span>
       </div>

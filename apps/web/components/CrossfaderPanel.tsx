@@ -41,7 +41,7 @@ export function CrossfaderPanel() {
 
   return (
     <div className="panel-surface flex flex-col items-center gap-2 rounded-xl border border-deck-border p-3 shadow-panel landscape:gap-0.5 landscape:p-1 lg:landscape:gap-3 lg:landscape:p-3 lg:gap-3 lg:p-3">
-      <span className="text-xs font-bold tracking-widest text-neutral-400 landscape:text-[9px] lg:landscape:text-xs">
+      <span className="text-xs font-bold tracking-widest text-neutral-400 landscape:text-[9px] lg:landscape:text-base 2xl:landscape:text-lg">
         CROSSFADER
       </span>
       <div className="flex gap-1 landscape:gap-0.5">
@@ -51,7 +51,7 @@ export function CrossfaderPanel() {
             type="button"
             onClick={() => handleCurve(id)}
             className={cx(
-              "min-h-9 rounded-sm border px-2 py-1.5 text-[10px] font-semibold uppercase landscape:min-h-4 landscape:px-0.5 landscape:py-px landscape:text-[6px] lg:landscape:min-h-9 lg:landscape:px-2 lg:landscape:py-1.5 lg:landscape:text-[10px]",
+              "min-h-9 rounded-sm border px-2 py-1.5 text-[10px] font-semibold uppercase landscape:min-h-4 landscape:px-0.5 landscape:py-px landscape:text-[6px] lg:landscape:min-h-9 lg:landscape:px-2 lg:landscape:py-1.5 lg:landscape:text-sm 2xl:landscape:min-h-11 2xl:landscape:text-base",
               mixer.crossfaderCurve === id
                 ? "border-transparent bg-amber text-black"
                 : "border-deck-border text-neutral-400",

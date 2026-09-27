@@ -107,7 +107,7 @@ export function Slider({
         />
       </div>
       {label && (
-        <span className="text-[9px] font-medium uppercase tracking-wide text-neutral-500">
+        <span className="text-[9px] font-medium uppercase tracking-wide text-neutral-500 lg:landscape:text-xs 2xl:landscape:text-sm">
           {label}
         </span>
       )}

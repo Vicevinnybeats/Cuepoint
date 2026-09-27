@@ -57,19 +57,24 @@ export function TimeDisplay({ deck }: { deck: DeckId }) {
   }
 
   return (
-    <div className="rounded-md border border-deck-border bg-panel-sunken px-3 py-2 font-mono">
+    <div className="rounded-md border border-deck-border bg-panel-sunken px-3 py-2 font-mono lg:px-4 lg:py-3">
       <div className="flex items-baseline justify-between">
-        <span ref={elapsedRef} className="lcd text-2xl">
+        <span ref={elapsedRef} className="lcd text-2xl lg:text-4xl">
           0:00
         </span>
-        <span ref={remainingRef} className="lcd-dim text-sm">
+        <span ref={remainingRef} className="lcd-dim text-sm lg:text-lg">
           -0:00
         </span>
       </div>
-      <div className="mt-1 flex items-center justify-between gap-2 text-[11px]">
-        <span className="lcd max-w-[7rem] truncate">{track ? track.title : "No Track"}</span>
-        <span className="lcd shrink-0">{track?.key ?? "--"}</span>
-        <span className="lcd shrink-0">
+      <div className="mt-1 flex items-center justify-between gap-2 text-xs lg:text-base">
+        {/* Bold + given the row's actual free space (instead of a guessed
+            max-width) rather than relying on color/size alone to read at a
+            glance — the LCD glow can blur small, regular-weight text. */}
+        <span className="lcd min-w-0 flex-1 truncate font-semibold">
+          {track ? track.title : "No Track"}
+        </span>
+        <span className="lcd shrink-0 font-semibold">{track?.key ?? "--"}</span>
+        <span className="lcd shrink-0 font-semibold">
           <span ref={bpmRef}>--.-</span> BPM
         </span>
       </div>
