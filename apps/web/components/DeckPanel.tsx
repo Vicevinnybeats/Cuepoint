@@ -356,9 +356,9 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
   };
 
   return (
-    <div className="panel-surface flex flex-col gap-3 rounded-xl border border-deck-border p-4 shadow-panel landscape:gap-0.5 landscape:p-0.5 lg:landscape:gap-3 lg:landscape:p-4 lg:gap-3 lg:p-4">
+    <div className="panel-surface flex flex-col gap-3 rounded-xl border border-deck-border p-4 shadow-panel landscape:gap-1 landscape:p-1 lg:landscape:gap-3 lg:landscape:p-4 lg:gap-3 lg:p-4">
       <div className="flex items-center justify-between leading-none landscape:leading-none">
-        <span className="text-sm font-bold tracking-widest text-neutral-300 leading-none landscape:text-[9px] lg:landscape:text-lg 2xl:landscape:text-xl">DECK {deck}</span>
+        <span className="text-sm font-bold tracking-widest text-neutral-300 leading-none landscape:text-[11px] lg:landscape:text-lg 2xl:landscape:text-xl">DECK {deck}</span>
         <span className="hidden text-[9px] text-neutral-600 lg:inline lg:landscape:text-xs">{DECK_KEY_HINTS[deck]}</span>
         <div
           ref={playingIndicatorRef}
@@ -374,19 +374,19 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         peaks={state.track?.waveform ?? null}
         markers={waveformMarkers}
         onSeek={(position) => void handleSeek(position)}
-        height={compact ? 12 : 64}
+        height={compact ? 20 : 64}
         durationSeconds={state.track?.durationSeconds ?? 0}
       />
 
       {/* Pitch fader sits right beside the platter, like a real
           turntable/CDJ, instead of being buried at the bottom of the panel. */}
-      <div className="flex items-center justify-center gap-3 py-1 landscape:gap-1 landscape:py-0">
+      <div className="flex items-center justify-center gap-3 py-1 landscape:gap-2 landscape:py-0">
         <JogWheel deck={deck} />
         <Slider
           value={state.tempoPercent / TEMPO_RANGE_PERCENT}
           onChange={handleTempo}
           bipolar
-          height={compact ? 16 : 220}
+          height={compact ? 48 : 220}
           label={state.track ? `${(state.track.bpm * (1 + state.tempoPercent / 100)).toFixed(1)} BPM` : "BPM"}
         />
       </div>
@@ -395,7 +395,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         <span className="text-[9px] font-medium uppercase tracking-wide text-neutral-500 landscape:hidden">
           Hot Cues
         </span>
-        <div className="grid grid-cols-4 gap-1.5 landscape:gap-1">
+        <div className="grid grid-cols-4 gap-1.5 landscape:gap-1.5">
           {[0, 1, 2, 3].map((index) => {
             const cue = state.hotCues.find((c) => c.index === index);
             return (
@@ -403,7 +403,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
                 key={index}
                 type="button"
                 className={cx(
-                  "h-11 rounded-sm border text-xs font-bold uppercase leading-none landscape:h-3.5 landscape:text-[8px] lg:landscape:h-14 lg:landscape:text-lg 2xl:landscape:h-16 2xl:landscape:text-xl",
+                  "h-11 rounded-sm border text-xs font-bold uppercase leading-none landscape:h-7 landscape:text-xs lg:landscape:h-14 lg:landscape:text-lg 2xl:landscape:h-16 2xl:landscape:text-xl",
                   cue ? "border-transparent text-black" : "border-deck-border text-neutral-500",
                 )}
                 style={cue ? { backgroundColor: cue.color, WebkitTouchCallout: "none" } : undefined}
@@ -439,10 +439,10 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         <LoopControls deck={deck} />
       </div>
 
-      <div className="flex items-center gap-2 landscape:gap-0.5">
+      <div className="flex items-center gap-2 landscape:gap-1">
         <button
           type="button"
-          className="flex-1 rounded-md border border-deck-border bg-panel-raised py-3 text-xs font-bold uppercase leading-none text-neutral-200 active:bg-neutral-700 landscape:py-px landscape:text-[8px] lg:landscape:py-4 lg:landscape:text-base 2xl:landscape:py-5 2xl:landscape:text-lg"
+          className="flex-1 rounded-md border border-deck-border bg-panel-raised py-3 text-xs font-bold uppercase leading-none text-neutral-200 active:bg-neutral-700 landscape:py-1.5 landscape:text-[10px] lg:landscape:py-4 lg:landscape:text-base 2xl:landscape:py-5 2xl:landscape:text-lg"
           onPointerDown={() => void handleCueDown()}
           onPointerUp={handleCueUp}
           onPointerLeave={handleCueUp}
@@ -452,7 +452,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         <button
           type="button"
           className={cx(
-            "flex-[2] rounded-md py-3 text-xs font-bold uppercase leading-none landscape:py-px landscape:text-[8px] lg:landscape:py-4 lg:landscape:text-base 2xl:landscape:py-5 2xl:landscape:text-lg",
+            "flex-[2] rounded-md py-3 text-xs font-bold uppercase leading-none landscape:py-1.5 landscape:text-[10px] lg:landscape:py-4 lg:landscape:text-base 2xl:landscape:py-5 2xl:landscape:text-lg",
             state.playRequested
               ? "bg-accent text-black"
               : "border border-deck-border bg-panel-raised text-neutral-200",
@@ -464,7 +464,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
         <button
           type="button"
           className={cx(
-            "flex-1 rounded-md border py-3 text-xs font-bold uppercase leading-none landscape:py-px landscape:text-[8px] lg:landscape:py-4 lg:landscape:text-base 2xl:landscape:py-5 2xl:landscape:text-lg",
+            "flex-1 rounded-md border py-3 text-xs font-bold uppercase leading-none landscape:py-1.5 landscape:text-[10px] lg:landscape:py-4 lg:landscape:text-base 2xl:landscape:py-5 2xl:landscape:text-lg",
             state.syncEnabled
               ? "border-transparent bg-green-500 text-black"
               : "border-deck-border bg-panel-raised text-neutral-200",
@@ -479,7 +479,7 @@ export function DeckPanel({ deck }: { deck: DeckId }) {
       <div className="flex items-center justify-center">
         <button
           type="button"
-          className="rounded-md border border-deck-border bg-panel-raised px-3 py-2 text-[11px] font-semibold uppercase leading-none text-neutral-300 disabled:opacity-50 landscape:px-1 landscape:py-0.5 landscape:text-[7px] lg:landscape:px-4 lg:landscape:py-3 lg:landscape:text-sm 2xl:landscape:text-base"
+          className="rounded-md border border-deck-border bg-panel-raised px-3 py-2 text-[11px] font-semibold uppercase leading-none text-neutral-300 disabled:opacity-50 landscape:px-2 landscape:py-1 landscape:text-[9px] lg:landscape:px-4 lg:landscape:py-3 lg:landscape:text-sm 2xl:landscape:text-base"
           onClick={() => fileInputRef.current?.click()}
           disabled={loading}
         >

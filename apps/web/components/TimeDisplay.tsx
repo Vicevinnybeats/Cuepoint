@@ -42,14 +42,14 @@ export function TimeDisplay({ deck }: { deck: DeckId }) {
     // numbers (the only things that change every frame) and drops the
     // static text, which is still visible in the Library panel.
     return (
-      <div className="flex items-baseline justify-between gap-1 rounded-md border border-deck-border bg-panel-sunken px-1.5 py-0.5 font-mono leading-none lg:hidden">
-        <span ref={elapsedRef} className="lcd text-[11px] leading-none">
+      <div className="flex items-baseline justify-between gap-1 rounded-md border border-deck-border bg-panel-sunken px-2 py-1 font-mono leading-none lg:hidden">
+        <span ref={elapsedRef} className="lcd text-sm font-semibold leading-none">
           0:00
         </span>
-        <span className="lcd shrink-0 text-[8px] leading-none">
+        <span className="lcd shrink-0 text-[10px] font-semibold leading-none">
           <span ref={bpmRef}>--.-</span> BPM
         </span>
-        <span ref={remainingRef} className="lcd-dim text-[8px] leading-none">
+        <span ref={remainingRef} className="lcd-dim text-[10px] leading-none">
           -0:00
         </span>
       </div>

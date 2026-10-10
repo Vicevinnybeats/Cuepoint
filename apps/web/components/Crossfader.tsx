@@ -40,13 +40,13 @@ export function Crossfader({ value, onChange }: { value: number; onChange: (v: n
 
   return (
     <div className="flex w-full flex-col items-center gap-1">
-      <div className="flex w-full justify-between px-1 text-[9px] font-bold text-neutral-500 lg:landscape:text-sm 2xl:landscape:text-base">
+      <div className="flex w-full justify-between px-1 text-[9px] font-bold text-neutral-500 landscape:text-[11px] lg:landscape:text-sm 2xl:landscape:text-base">
         <span>A</span>
         <span>B</span>
       </div>
       <div
         ref={trackRef}
-        className="control-surface relative h-9 w-full cursor-ew-resize rounded-md border border-deck-border bg-panel-sunken landscape:h-3 lg:landscape:h-9 2xl:landscape:h-12"
+        className="control-surface relative h-9 w-full cursor-ew-resize rounded-md border border-deck-border bg-panel-sunken landscape:h-5 lg:landscape:h-9 2xl:landscape:h-12"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onDoubleClick={handleDoubleClick}

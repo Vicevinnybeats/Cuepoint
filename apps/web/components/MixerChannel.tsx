@@ -80,23 +80,23 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
 
   const assignIndex = ASSIGNS.findIndex((a) => a.id === assign);
 
-  const knobSize = compact ? 20 : wide ? 76 : 56;
+  const knobSize = compact ? 28 : wide ? 76 : 56;
   // Only the grid layout (landscape phone or desktop, at any width >=1024)
   // gives this column a stretched, definite height to grow into next to
   // the (usually taller) deck panels — on the stacked portrait layout
   // there's no such ancestor, so the fader stays a fixed size there too,
   // same as the phone-landscape strip.
   const canFillHeight = !compact && !portrait;
-  const faderHeight: number | string = compact ? 46 : canFillHeight ? "100%" : 176;
+  const faderHeight: number | string = compact ? 64 : canFillHeight ? "100%" : 176;
 
   return (
     <div
       className={cx(
-        "panel-surface flex flex-col items-center gap-3 rounded-xl border border-deck-border p-4 shadow-panel landscape:gap-0.5 landscape:p-1 lg:landscape:gap-3 lg:landscape:p-4 lg:gap-4 lg:p-4 2xl:landscape:gap-5 2xl:landscape:p-5",
+        "panel-surface flex flex-col items-center gap-3 rounded-xl border border-deck-border p-4 shadow-panel landscape:gap-1 landscape:p-1.5 lg:landscape:gap-3 lg:landscape:p-4 lg:gap-4 lg:p-4 2xl:landscape:gap-5 2xl:landscape:p-5",
         canFillHeight && "h-full",
       )}
     >
-      <span className="text-xs font-bold tracking-widest text-neutral-400 landscape:text-[9px] lg:landscape:text-base 2xl:landscape:text-lg">
+      <span className="text-xs font-bold tracking-widest text-neutral-400 landscape:text-[11px] lg:landscape:text-base 2xl:landscape:text-lg">
         {deck}
       </span>
       <Knob
@@ -106,7 +106,7 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
         resetValue={1 / GAIN_RANGE}
         size={knobSize}
       />
-      <div className="flex flex-col gap-2 landscape:flex-row landscape:gap-0.5 lg:landscape:flex-col lg:landscape:gap-2">
+      <div className="flex flex-col gap-2 landscape:flex-row landscape:gap-1 lg:landscape:flex-col lg:landscape:gap-2">
         <Knob value={state.eqHigh} onChange={(v) => handleEq("eqHigh", v)} label="Hi" size={knobSize} />
         <Knob value={state.eqMid} onChange={(v) => handleEq("eqMid", v)} label="Mid" size={knobSize} />
         <Knob value={state.eqLow} onChange={(v) => handleEq("eqLow", v)} label="Low" size={knobSize} />
@@ -141,13 +141,13 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
           Double-click resets it to Thru, the neutral/unassigned position. */}
       <div className="flex flex-col items-center gap-1 landscape:gap-0.5">
         <div
-          className="relative flex h-6 w-24 items-center rounded-full border border-deck-border bg-panel-sunken landscape:h-3 landscape:w-11 lg:landscape:h-6 lg:landscape:w-24 2xl:landscape:h-7 2xl:landscape:w-28"
+          className="relative flex h-6 w-24 items-center rounded-full border border-deck-border bg-panel-sunken landscape:h-5 landscape:w-16 lg:landscape:h-6 lg:landscape:w-24 2xl:landscape:h-7 2xl:landscape:w-28"
           role="group"
           aria-label={`Deck ${deck} crossfader assign`}
           onDoubleClick={() => handleAssign("thru")}
         >
           <div
-            className="pointer-events-none absolute top-0.5 h-5 w-1/3 rounded-full bg-amber shadow-md transition-[left] duration-150 landscape:top-px landscape:h-2 lg:landscape:top-0.5 lg:landscape:h-5 2xl:landscape:h-6"
+            className="pointer-events-none absolute top-0.5 h-5 w-1/3 rounded-full bg-amber shadow-md transition-[left] duration-150 landscape:top-0.5 landscape:h-4 lg:landscape:top-0.5 lg:landscape:h-5 2xl:landscape:h-6"
             style={{ left: `calc(${assignIndex * (100 / 3)}% + 2px)`, width: "calc(33.33% - 4px)" }}
           />
           {ASSIGNS.map(({ id, label }) => (
@@ -156,7 +156,7 @@ export function MixerChannel({ deck }: { deck: DeckId }) {
               type="button"
               onClick={() => handleAssign(id)}
               className={cx(
-                "relative z-10 flex-1 text-[9px] font-bold uppercase landscape:text-[6px] lg:landscape:text-xs 2xl:landscape:text-sm",
+                "relative z-10 flex-1 text-[9px] font-bold uppercase landscape:text-[9px] lg:landscape:text-xs 2xl:landscape:text-sm",
                 assign === id ? "text-black" : "text-neutral-400",
               )}
               title={`Assign deck ${deck} to the crossfader's ${label} side`}
